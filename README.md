@@ -7,7 +7,7 @@ in the HARPS-GTO sample with those of their closest "twin" stars without planets
 |---|---|
 | [`chemclock-data/`](chemclock-data/) | Input data (tag **v0**): HARPS-GTO parameters and abundances, NASA Exoplanet Archive snapshot, the paper's reference tables. **Read its README**: it has the column notes and the list of known issues. |
 | [`chemclock-matching/`](chemclock-matching/) | Scripts: host crossmatch, rebuild of the paper table, neighbour matching. |
-| [`chemclock-analysis/`](chemclock-analysis/) | Condensation-temperature slopes and the small/giant planet count. **Read its README**: it lists the problems found in the original analysis. |
+| [`chemclock-analysis/`](chemclock-analysis/) | The paper's analysis pipeline (Figures 1–5) and the earlier slope-sign count. **Read its README**: it lists the problems found and fixed. |
 | [`reproduce.py`](reproduce.py) | Runs every step below in order. |
 
 ---
@@ -119,15 +119,40 @@ elements). Expected:
 Run `python chemclock-matching/match_neighbours.py -h` for all options (Teff window, k,
 parameter set, tie handling, and so on). Every option the paper's Methods leave open is a flag.
 
-### Step 4. Condensation-temperature slopes: small against giant planets
+### Step 4. The paper's analysis and figures
+
+```bash
+python chemclock-analysis/pipeline/run_pipeline.py
+```
+
+Runs the paper's pipeline on the paper's input table (`final_test_v0.csv`). For every host it
+combines the three neighbours (inverse-variance weighted), averages Δ[X/Fe] within four element
+families (volatile, iron-peak, α + Al, s-process), and compares small-planet hosts with
+giant-planet hosts. It writes Figures 1–5 and the isochrone figure to
+`chemclock-analysis/pipeline/output/figures/`. Expected main results (121 classified hosts: 51
+small, 70 giant):
+
+| Result | Expected |
+|---|---|
+| s-process, small − giant | −0.039 dex, **−4.40σ** |
+| … after regressing out Δ[Fe/H] | −4.54σ |
+| … after regressing out ΔTeff, Δlog g, Δ[Fe/H] | −4.72σ |
+| [Y/Mg] clock, Δage small − giant | +0.84 Gyr (+2.2σ) |
+| Tc slope small − giant, with / without s-process | −2.21σ / −0.32σ |
+| Isochrone ages vs [Y/Mg] ages (99 hosts) | Pearson r = +0.27 |
+
+The full printout of every test is in the terminal output.
+[chemclock-analysis/README.md](chemclock-analysis/README.md#pipeline-the-papers-analysis) lists
+the fixes made to the pipeline and the questions it leaves open.
+
+### Step 5. The early slope-sign count (original notebook)
 
 ```bash
 python chemclock-analysis/tc_slopes.py --paper
 ```
 
-For every host and each neighbour, fits a line to Δ[X/Fe] against condensation temperature (18
-elements). A host counts as positive if at least two of its three slopes are positive, and as
-negative if at least two are negative. `--paper` reproduces the original notebook exactly:
+Reproduces the original notebook, an earlier and simpler analysis: one Tc slope per host-neighbour
+pair, and a count of hosts with mostly positive or mostly negative slopes.
 
 | | Small planets (< 0.3 Mj) | Giant planets (> 0.3 Mj) |
 |---|---|---|
@@ -135,38 +160,28 @@ negative if at least two are negative. `--paper` reproduces the original noteboo
 | Negative slope | 52 | 45 |
 
 > [!WARNING]
-> These paper numbers come from an analysis with a bug: each element was fitted at the condensation
-> temperature of a different element, which nearly reverses the sign of the slopes. They also
-> count planets, not hosts. See
+> The notebook fitted each element at the condensation temperature of a different element, which
+> nearly reverses the sign of the slopes, and it counted planets rather than hosts. The paper
+> pipeline (Step 4) does not have these problems. See
 > [chemclock-analysis/README.md](chemclock-analysis/README.md#problems-found-in-the-original-notebook).
 
-The corrected analysis (v0 data, each element at its own temperature, one vote per host):
-
-```bash
-python chemclock-analysis/tc_slopes.py
-```
-
-| | Small planets (< 0.3 Mj) | Giant planets (≥ 0.3 Mj) |
-|---|---|---|
-| Positive slope | 26 hosts | 38 hosts |
-| Negative slope | 26 hosts | 34 hosts |
-
-To run the analysis on your own matching, pass a pair table from Step 3:
-`python chemclock-analysis/tc_slopes.py --pairs chemclock-matching/output/pairs_general_wr_w160_k3.csv`.
+The corrected count (`python chemclock-analysis/tc_slopes.py`): small 26 positive / 26 negative,
+giant 38 / 34 hosts. To use your own matching, pass a pair table from Step 3 with `--pairs`.
 
 ---
 
 ## What can and cannot be reproduced at the moment
 
 - **Reproduced exactly:** the paper's input table `final_test_v0.csv`, from the v6 neighbours and
-  the v0 abundances (Step 2), and the paper's small/giant counts (Step 4, `--paper`).
+  the v0 abundances (Step 2); the paper's results and figures from that table (Step 4); and the
+  notebook's slope-sign counts (Step 5, `--paper`).
 - **Not reproduced:** the v6 neighbours themselves. Neither these scripts nor the original
   notebook (`chemclock-matching/original/`) gives the same three neighbours for more than about
   10 of the 131 hosts. The procedure that produced `neighbour_table_v6.csv` was not recorded well
   enough to regenerate it. This is open issue 6 in the
   [data README](chemclock-data/README.md#known-issues-in-the-data-open-to-be-resolved-by-the-students).
-- **Known errors in the paper's analysis:** see Step 4. The original notebook is kept in
-  `chemclock-analysis/original/` for reference.
+- **Errors found:** in the original notebook (Step 5) and small ones in the pipeline (Step 4); see
+  [chemclock-analysis/README.md](chemclock-analysis/README.md).
 
 ## Rules for reporting a result
 

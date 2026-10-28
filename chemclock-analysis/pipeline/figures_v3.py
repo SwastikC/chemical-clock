@@ -128,7 +128,7 @@ for fam in fam_list:
 colors = [FAMILY_COLOR[f] for f in fam_list]
 bars = ax.barh(x_pos, sigmas, color=colors, edgecolor='k', alpha=0.85, lw=0.6)
 for i, (s, p) in enumerate(zip(sigmas, ps)):
-    label = f'$\\sigma$={s:+.1f}\np={p:.4f}'.replace('p=0.0000','p<0.0001')
+    label = f'$\\sigma$={s:+.1f}\np={p:.4f}'.replace('p=0.0000', f'p<{1/len(ds):.4f}')
     ax.text(s + (0.4 if s>=0 else -0.4), i, label,
             va='center', ha='left' if s>=0 else 'right', fontsize=9)
 ax.axvline(0, color='grey', lw=0.6)
@@ -307,6 +307,9 @@ plt.close()
 fig = plt.figure(figsize=(13, 8))
 gs = GridSpec(2, 3, figure=fig, hspace=0.4, wspace=0.32)
 
+# Small-giant sigma of the s-process family, before any regression
+sigma_raw = (s_sp.mean() - g_sp.mean()) / np.sqrt(s_sp.var(ddof=1)/len(s_sp) + g_sp.var(ddof=1)/len(g_sp))
+
 # (a) Stellar-parameter regression: Δ[s-process] vs Δ[Fe/H]
 ax = fig.add_subplot(gs[0, 0])
 both = per_star.dropna(subset=['fam_s-process','dFeH','planet_class']).copy()
@@ -327,7 +330,7 @@ ax.legend(loc='upper left', fontsize=8)
 # (b) Leave-one-out s-process stability
 ax = fig.add_subplot(gs[0, 1])
 sproc = FAMILIES['s-process']
-labels, vals = ['all 4'], [-4.4]
+labels, vals = ['all 4'], [sigma_raw]
 # Recompute leave-one-out on the fly
 for skip in sproc:
     use = [e for e in sproc if e != skip]
@@ -350,7 +353,7 @@ for skip in sproc:
 y_pos = np.arange(len(labels))
 ax.barh(y_pos, vals, color='C3', alpha=0.7, edgecolor='k', lw=0.5)
 for i, v in enumerate(vals):
-    ax.text(v - 0.15, i, f'{v:+.1f}σ', va='center', ha='right',
+    ax.text(v + 0.15, i, f'{v:+.1f}σ', va='center', ha='left',
             color='white' if abs(v) > 1 else 'black', fontsize=9)
 ax.axvline(-3, color='gray', ls=':', lw=0.8)
 ax.axvline(0, color='grey', lw=0.6)
@@ -421,11 +424,11 @@ ax.legend(loc='upper right', fontsize=8)
 # (f) After ΔT/Δlogg/Δ[Fe/H] regression: signal stable
 ax = fig.add_subplot(gs[1, 2])
 panels = ['Raw', '$-\\Delta$[Fe/H]', '$-\\Delta T,\\Delta g, \\Delta$[Fe/H]']
-sigmas_panel = [-4.4, obj1['sigma_resid'], obj2['sigma_clean']]
+sigmas_panel = [sigma_raw, obj1['sigma_resid'], obj2['sigma_clean']]
 y_pos = np.arange(len(panels))
 ax.barh(y_pos, sigmas_panel, color='C3', alpha=0.7, edgecolor='k', lw=0.5)
 for i, v in enumerate(sigmas_panel):
-    ax.text(v - 0.15, i, f'{v:+.1f}σ', va='center', ha='right',
+    ax.text(v + 0.15, i, f'{v:+.1f}σ', va='center', ha='left',
             color='white', fontsize=9)
 ax.axvline(0, color='grey', lw=0.6)
 ax.axvline(-3, color='gray', ls=':', lw=0.8)

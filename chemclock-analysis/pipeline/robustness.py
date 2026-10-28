@@ -58,7 +58,7 @@ def combine_neighbours(row):
     Y = np.zeros((3, len(elements))); E = np.zeros((3, len(elements)))
     for k, n in enumerate((1,2,3)):
         Y[k], E[k] = get_yE(row, n)
-    invvar = np.where(np.isfinite(E) & (E>0), 1.0/E**2, 0.0)
+    invvar = np.where(np.isfinite(E) & (E>0), 1.0/np.where(E>0, E, np.nan)**2, 0.0)
     w_sum = invvar.sum(0)
     y_comb = np.where(w_sum>0, np.nansum(Y*invvar,0)/np.where(w_sum>0,w_sum,1), np.nan)
     e_comb = np.where(w_sum>0, 1.0/np.sqrt(np.where(w_sum>0,w_sum,1)), np.nan)

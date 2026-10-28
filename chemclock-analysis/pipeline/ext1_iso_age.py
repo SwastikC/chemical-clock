@@ -52,12 +52,14 @@ def parse_age(s):
     except: return np.nan, np.nan
 
 # Parse ages from both tables
-swp_full['Star_n'] = swp_full['hostname_1'].apply(norm)
 swop_full['Star_n'] = swop_full['Star---'].apply(norm)
 swp_full[['age_iso','age_iso_err']]  = swp_full['Age (e)Gyr'].apply(lambda s: pd.Series(parse_age(s)))
 swop_full[['age_iso','age_iso_err']] = swop_full['Age (e)Gyr'].apply(lambda s: pd.Series(parse_age(s)))
 
-swp_lookup  = swp_full.drop_duplicates('Star_n').set_index('Star_n')[['age_iso','age_iso_err']]
+# Hosts are found by common name (hostname_1) or HD identifier (Star---), as in
+# build_stellar_offsets.py. hostname_1 alone misses tau Cet, eps Eri, 61 Vir, ...
+swp_keys = pd.concat([swp_full.assign(Star_n=swp_full[c].apply(norm)) for c in ('hostname_1', 'Star---')])
+swp_lookup  = swp_keys.drop_duplicates('Star_n').set_index('Star_n')[['age_iso','age_iso_err']]
 swop_lookup = swop_full.drop_duplicates('Star_n').set_index('Star_n')[['age_iso','age_iso_err']]
 
 # =====================================================================
@@ -125,7 +127,7 @@ def combine_neighbours(row):
     Y = np.zeros((3, len(elements))); E = np.zeros((3, len(elements)))
     for k, n in enumerate((1,2,3)):
         Y[k], E[k] = get_yE(row, n)
-    invvar = np.where(np.isfinite(E) & (E>0), 1.0/E**2, 0.0)
+    invvar = np.where(np.isfinite(E) & (E>0), 1.0/np.where(E>0, E, np.nan)**2, 0.0)
     w_sum = invvar.sum(0)
     y_comb = np.where(w_sum>0, np.nansum(Y*invvar,0)/np.where(w_sum>0,w_sum,1), np.nan)
     e_comb = np.where(w_sum>0, 1.0/np.sqrt(np.where(w_sum>0,w_sum,1)), np.nan)

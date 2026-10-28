@@ -4,10 +4,11 @@
   1. crossmatch the HARPS-GTO stars with the NASA Exoplanet Archive snapshot
   2. rebuild the paper v6 input table (final_test_v0.csv) and check it
   3. neighbour matching with the default settings and two variants
-  4. condensation-temperature slopes: the paper's numbers, then the corrected analysis
+  4. the paper's analysis pipeline and its figures
+  5. the original notebook's slope-sign count, then the corrected count
 
-Stops at the first step that fails. Outputs go to chemclock-matching/output/ and
-chemclock-analysis/output/.
+Stops at the first step that fails. Outputs go to chemclock-matching/output/,
+chemclock-analysis/pipeline/output/ (figures) and chemclock-analysis/output/.
 
 Usage:  python reproduce.py
 """
@@ -28,8 +29,9 @@ STEPS = [
     ('3b. matching: without replacement', [MATCH / 'match_neighbours.py', '--no-replacement']),
     ('3c. matching: HARPS parameters, archive hosts removed',
      [MATCH / 'match_neighbours.py', '--params', 'harps', '--drop-archive-hosts', '--tag', 'harps_clean']),
-    ('4a. Tc slopes: paper numbers (original notebook)', [ANALYSIS / 'tc_slopes.py', '--paper']),
-    ('4b. Tc slopes: corrected analysis', [ANALYSIS / 'tc_slopes.py']),
+    ('4. paper analysis and figures', [ANALYSIS / 'pipeline' / 'run_pipeline.py']),
+    ('5a. slope-sign count: original notebook', [ANALYSIS / 'tc_slopes.py', '--paper']),
+    ('5b. slope-sign count: corrected', [ANALYSIS / 'tc_slopes.py']),
 ]
 
 
@@ -54,4 +56,5 @@ for title, args in STEPS:
         sys.exit(f'step "{title}" failed')
 
 banner('done')
-print(f'outputs in {MATCH / "output"} and {ANALYSIS / "output"}')
+print(f'outputs in {MATCH / "output"}, {ANALYSIS / "output"}')
+print(f'figures in {ANALYSIS / "pipeline" / "output" / "figures"}')

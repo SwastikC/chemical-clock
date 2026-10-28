@@ -1,17 +1,80 @@
 # chemclock-analysis
 
-Condensation-temperature (Tc) slopes of host-minus-neighbour abundances, and the count of
-positive and negative slopes for small and giant planets.
+| | |
+|---|---|
+| [`pipeline/`](pipeline/) | The paper's analysis: element-family offsets, chemical-clock ages, robustness tests, isochrone cross-check, Figures 1–5. |
+| [`tc_slopes.py`](tc_slopes.py) | The earlier slope-sign count from the original notebook, with a mode that reproduces it exactly. |
+| [`original/`](original/) | The original notebook, for reference. |
 
 ```
+python pipeline/run_pipeline.py    # the paper's results and figures
 python tc_slopes.py --paper        # the numbers of the original notebook, exactly
-python tc_slopes.py                # corrected analysis: v0 data, each element at its own Tc, one vote per host
+python tc_slopes.py                # corrected slope-sign count: each element at its own Tc, one vote per host
 ```
 
-`--count hosts` (the default) needs `../chemclock-matching/output/host_crossmatch.csv`, so run
-`chemclock-matching/crossmatch_hosts.py` first. Outputs go to `output/` (not committed).
+Outputs go to `pipeline/output/` and `output/` (not committed).
+
+## pipeline/: the paper's analysis
+
+Reads the paper's input table (`final_test_v0.csv`), the v6 neighbour table, the HARPS-GTO
+parameters and ages, and the archive snapshot; all paths are in `pipeline/paths.py`.
+`run_pipeline.py` runs the five scripts in order:
+
+| Script | What it does | Writes |
+|---|---|---|
+| `build_stellar_offsets.py` | host minus mean-of-neighbours ΔTeff, Δlog g, Δ[Fe/H] | `paper_stellar_offsets.csv` |
+| `robustness.py` | combines the 3 neighbours per host (inverse-variance), family means, small − giant tests, five chemical clocks, ten robustness checks | `_state_v3.pkl` |
+| `figures_v3.py` | Figures 1–5 from `_state_v3.pkl` | `figures/fig1`–`fig5` |
+| `ext1_iso_age.py` | isochrone Δage against [Y/Mg] Δage, same hosts | `iso_ymg_comparison.csv`, `_state_ext1.pkl` |
+| `ext1_fig.py` | the isochrone figure | `figures/fig_iso_vs_ymg` |
+
+Hosts are classified by the largest Mp sin i of their planets (small < 0.3 Mj ≤ giant), joined
+on the archive `hd_name`: 121 of the 131 hosts, 51 small and 70 giant. The expected main numbers
+are in the [top-level README](../README.md#step-4-the-papers-analysis-and-figures). Elements are
+paired with their own Tc throughout; the problem of the original notebook does not occur here.
+Running on the legacy table (before the Cr correction) changes no s-process number.
+
+### Changes made to the pipeline as received
+
+The first commit that adds `pipeline/` holds the scripts as received, with only the input paths
+changed; its output is identical to the original scripts. The changes after that:
+
+1. **Isochrone ages: hosts looked up by name only.** `ext1_iso_age.py` found host ages by common
+   name (`hostname_1`) only, the same problem `build_stellar_offsets.py` describes and fixes. Six
+   hosts with ages were dropped (τ Cet, 61 Vir, ε Eri, GJ 3021, ι Hor, HD 26965). With them the
+   comparison has 99 hosts instead of 94: Pearson r +0.22 → +0.27, isochrone small − giant
+   +2.03σ → +1.97σ, combined +3.30σ → +3.38σ.
+2. **Figure 5 used a typed-in −4.4.** The "all 4" bar of panel (b) and the "Raw" bar of panel (f)
+   were the number −4.4 written in the code, not computed, so they would not follow a change of
+   input. They are now computed (−4.40 with the paper's input, so the figure is unchanged).
+3. **Figure 5 labels were invisible.** The σ labels of panels (b) and (f) were white text drawn
+   outside the bars; they are now inside.
+4. **Figure 2 claimed p < 0.0001** when no permutation beat the observed value, but it runs 2000
+   permutations, so the smallest p it can show is 1/2000. The label now says p < 0.0005.
+5. A divide-by-zero warning was printed several hundred times; the computation was already
+   correct and is unchanged.
+
+### Open questions (not changed)
+
+- **Hosts are not independent.** 85 of the 273 neighbour stars serve more than one host (up to
+  five), and 38 serve both a small- and a giant-planet host. The σ values treat the hosts as
+  independent, so they are probably somewhat too large. Comparing with a matching without
+  replacement (`match_neighbours.py --no-replacement`) would show by how much.
+- **Planet classes use `hd_name` only** (data README, issue 3): 121 hosts classified, against 124
+  with the identifier-and-position crossmatch of `crossmatch_hosts.py`.
+- **Archive hosts in the control pool** (data README, issue 2): 10 of the v6 neighbours are
+  themselves planet hosts.
+- **Figure 5(d)** computes power from the observed effect size, which only restates the observed
+  significance; and the "robust regime" band in Figure 5(c) is drawn by hand at 1100–1300 K.
+- The [Y/Mg] calibration (−0.041 dex/Gyr) is cited as Tucci Maia 2019 in four comments and as
+  Tucci Maia et al. 2016 in one (`robustness.py`, `ext1_iso_age.py`); check which the paper means.
+- The pipeline reads the v6 table only. To run it on a new matching, `final_test` and
+  `neighbours` in `paths.py` would have to point at tables in the same layout.
 
 ## tc_slopes.py
+
+`--count hosts` (the default) needs `../chemclock-matching/output/host_crossmatch.csv`, so run
+`chemclock-matching/crossmatch_hosts.py` first.
 
 For every host and each of its three neighbours, a straight line is fitted (ordinary least
 squares) to Δ[X/Fe] against Tc for the 18 elements (Zn, Cu, Na, Mn, Cr, Si, Mg, Co, Ni, V, Ba,
