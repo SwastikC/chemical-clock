@@ -12,22 +12,24 @@ Each matched star gets the largest Mp sin i among its planets that have a mass,
 and a class: small (< --cut Mj), giant (>= --cut), or none (no mass).
 
 Output: output/host_crossmatch.csv, plus a summary comparing with the HARPS
-host flag (epsilon SwP?) and the host lists used in the paper.
+host flag (epsilon SwP?) and the 131 hosts of the sample.
 
-Usage:  python crossmatch_hosts.py [--data ../chemclock-data/data] [--radius 60] [--cut 0.3]
+Usage:  python crossmatch_hosts.py [--radius 60] [--cut 0.3] [--data DIR] [--out DIR]
+        (by default reads ../chemclock-data/data and writes output/ next to this script)
 """
 import argparse
 from pathlib import Path
 import numpy as np
 import pandas as pd
 
+HERE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser()
-ap.add_argument('--data', default='../chemclock-data/data')
+ap.add_argument('--data', default=str(HERE.parent / 'chemclock-data' / 'data'))
 ap.add_argument('--radius', type=float, default=60.0, help='positional match radius, arcsec')
 ap.add_argument('--cut', type=float, default=0.3, help='small/giant split in Mp sin i, Jupiter masses')
-ap.add_argument('--out', default='output')
+ap.add_argument('--out', default=str(HERE / 'output'))
 a = ap.parse_args()
-D = Path(a.data); OUT = Path(a.out); OUT.mkdir(exist_ok=True)
+D = Path(a.data); OUT = Path(a.out); OUT.mkdir(parents=True, exist_ok=True)
 norm = lambda s: str(s).replace(' ', '').strip()
 
 # ---- archive hosts: one row per host
@@ -88,11 +90,9 @@ extra = m[~m['star'].isin(flagged)].sort_values('mp_sini_mj')
 print(f'  archive hosts flagged as NON-hosts in HARPS ({len(extra)}), i.e. in the control pool:')
 for _, r in extra.iterrows():
     print(f'    {r.star:12s} {r.archive_host:14s} Mp sin i = {r.mp_sini_mj:7.3f} Mj  ({r.method}, {r.sep_arcsec:.1f}")')
-for label, path, col in (('neighbour_table_v6 (133 hosts)', 'reference/neighbour_table_v6.csv', 'SwP'),
-                         ('final_test_v0 (131 hosts)', 'reference/final_test_v0.csv', 'id')):
-    ref = set(pd.read_csv(D / path)[col].map(norm))
-    mm = m[m['star'].isin(ref)]
-    print(f'{label}: {len(mm)} matched to the archive; small {(mm["class"] == "small").sum()}, '
-          f'giant {(mm["class"] == "giant").sum()}, no mass {(mm["class"] == "none").sum()}; '
-          f'not in archive: {", ".join(sorted(ref - set(m["star"])))}')
+ref = set(pd.read_csv(D / 'reference/hosts.csv')['host'].map(norm))
+mm = m[m['star'].isin(ref)]
+print(f'the {len(ref)} hosts of the sample (hosts.csv): {len(mm)} matched to the archive; small {(mm["class"] == "small").sum()}, '
+      f'giant {(mm["class"] == "giant").sum()}, no mass {(mm["class"] == "none").sum()}; '
+      f'not in archive: {", ".join(sorted(ref - set(m["star"])))}')
 print(f'\nwrote {OUT / "host_crossmatch.csv"}')

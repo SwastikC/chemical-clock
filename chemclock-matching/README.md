@@ -1,17 +1,18 @@
 # chemclock-matching
 
-Host crossmatch and neighbour matching for the chemical-clock project. Expects `chemclock-data`
-cloned next to this folder (or pass `--data`).
+Host crossmatch, neighbour matching and the host-minus-neighbour table for the chemical-clock
+project. The step-by-step guide with expected numbers is in the [top-level README](../README.md);
+`python ../reproduce.py` runs everything.
+
+The scripts read `../chemclock-data/data` and write to `output/` next to this file, whatever
+folder you run them from (pass `--data` or `--out` to change that). `output/` is not committed.
 
 ```
-pip install numpy scipy pandas
-python crossmatch_hosts.py                  # archive hosts -> HARPS-GTO stars, classes at 0.3 Mj
-python match_neighbours.py                  # rank-mean, General Properties parameters, with replacement
-python match_neighbours.py --no-replacement
-python match_neighbours.py --params harps --drop-archive-hosts --tag harps_clean
+pip install -r ../requirements.txt
+python crossmatch_hosts.py      # archive hosts -> HARPS-GTO stars, classes at 0.3 Mj
+python match_neighbours.py      # the v2 neighbours, checked against the committed table
+python build_table.py           # the host-minus-neighbour table, checked against final_test_v2.csv
 ```
-
-Outputs go to `output/` (not committed).
 
 ## crossmatch_hosts.py
 
@@ -19,28 +20,28 @@ Matches every HARPS-GTO star to the archive snapshot: first by identifier (HD, H
 trailing component letter allowed on the HARPS side), then by position within 60 arcsec. The
 positions differ in epoch (J2000 against Gaia), which is why identifiers come first. Each matched
 star gets the largest Mp sin i among its planets and a small/giant class. The summary lists stars
-whose HARPS host flag disagrees with the archive.
+whose HARPS host flag disagrees with the archive. `match_neighbours.py` uses the output to remove
+archive planet hosts from the controls.
 
 ## match_neighbours.py
 
-Rank-mean matching: controls within ±160 K, ranked separately on |dTeff|, |dlogg| and |d[Fe/H]|,
-the three ranks averaged, the k lowest taken. Without replacement, the assignment is solved
-globally (Hungarian algorithm), so the result does not depend on host order.
+For each host in `hosts.csv`, the distance to every control star is
 
-Every choice the paper's Methods leave open is a flag: parameter set, Teff window, k, replacement,
-tie ranking, ranking the host with its candidates, removing archive hosts from the control pool,
-and the host list. Run `python match_neighbours.py -h` for the list.
+d = √[ (ΔTeff / 50 K)² + (Δlog g / 0.10)² + (Δ[Fe/H] / 0.03)² ]
 
-Each run writes `neighbours_<tag>.csv` and `pairs_<tag>.csv`. The pair table is the agreed schema:
-one row per host-neighbour pair with d[X/Fe] and its error for 18 elements (from
-`epsilon_v0.csv`), dTeff, dlogg and d[Fe/H]. Combining the neighbours per host and all statistics
-are left to the analysis code.
+with General Properties parameters, and the 10 closest controls are the neighbours. Controls are
+the non-host stars of `epsilon_v0.csv` minus the archive planet hosts; a control can serve
+several hosts. With the defaults the result is the committed `neighbour_table_v2.csv`, and the
+script stops if it is not. `--k` and `--scales` change the number of neighbours and the scales,
+for comparisons (`--tag` names the output).
 
-The run also reports how many hosts get the same three neighbours as the stored v6 table. With the
-defaults this is 11 of 131, with about half of all neighbours shared.
+Each run writes `neighbours_<tag>.csv` (one row per host, closest first) and `pairs_<tag>.csv`
+(one row per host-neighbour pair with Δ[X/Fe] and its error for 18 elements, ΔTeff, Δlog g,
+Δ[Fe/H] and the distance).
 
-## original/
+## build_table.py
 
-`rank_mean_original.ipynb` is the notebook the v6 neighbours were first built with. It ranks with
-`argsort` (ties broken by sort order), includes the host in its own ranking, uses the HARPS-GTO
-parameter columns and the full non-host table as the pool, and keys hosts on `hostname_1`.
+Builds the table the analysis reads: one row per host, one block of Δ[X/Fe] and errors per
+neighbour (prefixes `1_` … `10_`), from `epsilon_v0.csv`. With the default input it checks the
+result cell by cell against the committed `final_test_v2.csv`. `--neighbours FILE --out FILE`
+builds the table for another neighbour table.
