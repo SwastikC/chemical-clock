@@ -1,4 +1,4 @@
-"""Per-SwP stellar-parameter offsets (host minus mean of its 3 neighbours).
+"""Per-SwP stellar-parameter offsets (host minus mean of its neighbours).
 
 Parameters are taken from the same HARPS-GTO columns used by the rank-mean
 neighbour matching (TeffK, logg[cm/s2], [Fe/H]---_x in starswithplanet.csv /
@@ -29,7 +29,7 @@ N={r['n']:tuple(r[cols]) for _,r in swop.dropna(subset=cols).drop_duplicates('n'
 P={norm(r['Star']):(r['Teff (K)'],r['logg [cm/s2]'],r['[Fe/H]']) for _,r in prop.iterrows()}
 rec=[]
 for _,r in nb.iterrows():
-    s=norm(r['SwP']); nbs=[norm(r[c]) for c in ('First','Second','Third')]
+    s=norm(r['SwP']); nbs=[norm(r[c]) for c in nb.columns if c!='SwP']   # any number of neighbours
     if s in H and all(n in N for n in nbs): h,a=H[s],[N[n] for n in nbs]; src='harps'
     elif s in P and all(n in P for n in nbs): h,a=P[s],[P[n] for n in nbs]; src='properties_f'
     else: continue

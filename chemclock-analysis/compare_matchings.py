@@ -3,12 +3,13 @@
 For each matching below: build the neighbour table with
 chemclock-matching/match_neighbours.py, run the paper pipeline on it
 (pipeline/run_pipeline.py --neighbours), and collect the main numbers. The stored
-v6 table (the paper) is the first row. v1 is the matching proposed as the
-reproducible replacement for v6; its regenerated neighbours and host-minus-neighbour
-table are checked against the committed neighbour_table_v1.csv and final_test_v1.csv
-in chemclock-data/data/reference/.
+v6 table (the paper) is the first row. v2 (scaled distance, 10 neighbours) is the
+recommended reproducible replacement for v6, v1 (rank-mean) the earlier proposal.
+For both, the regenerated neighbours and host-minus-neighbour table are checked
+against the committed neighbour_table_v*.csv and final_test_v*.csv in
+chemclock-data/data/reference/.
 
-Output: output/matching_comparison.csv, and a table on screen. Takes about 3 minutes.
+Output: output/matching_comparison.csv, and a table on screen. Takes about 4 minutes.
 
 Usage:  python compare_matchings.py
 """
@@ -24,11 +25,17 @@ ROOT = HERE.parent
 MATCH = ROOT / 'chemclock-matching'
 PIPE = HERE / 'pipeline'
 OUT = HERE / 'output'; OUT.mkdir(parents=True, exist_ok=True)
-V1 = ROOT / 'chemclock-data' / 'data' / 'reference' / 'neighbour_table_v1.csv'
+REF = ROOT / 'chemclock-data' / 'data' / 'reference'
+COMMITTED = ('v1', 'v2')               # tables committed in REF, checked to be regenerated exactly
 
 # tag: (description, match_neighbours.py options)
 MATCHINGS = {
-    'v1':                 ('HARPS params, archive hosts removed, with replacement (proposed v1)',
+    'v2':                 ('scaled distance (50 K, 0.10, 0.03), General Properties params, archive hosts removed, '
+                           '10 neighbours (recommended v2)',
+                           ['--method', 'scaled', '--k', '10', '--drop-archive-hosts']),
+    'scaled_k3':          ('scaled distance, as v2 but 3 neighbours',
+                           ['--method', 'scaled', '--k', '3', '--drop-archive-hosts']),
+    'v1':                 ('rank-mean, HARPS params, archive hosts removed, with replacement (v1, superseded)',
                            ['--params', 'harps', '--drop-archive-hosts']),
     'harps_wr':           ('HARPS params, with replacement', ['--params', 'harps']),
     'harps_nr':           ('HARPS params, without replacement', ['--params', 'harps', '--no-replacement']),
@@ -80,22 +87,23 @@ for tag, (desc, opts) in MATCHINGS.items():
     print(f'{tag} ...', flush=True)
     run([MATCH / 'match_neighbours.py', *opts, '--tag', tag])
     nb = MATCH / 'output' / f'neighbours_{tag}.csv'
-    if tag == 'v1' and V1.exists():
-        same = pd.read_csv(nb).equals(pd.read_csv(V1))
-        print(f'  regenerated v1 table identical to {V1.name}: {same}')
+    check = tag in COMMITTED and (REF / f'neighbour_table_{tag}.csv').exists()
+    if check:
+        same = pd.read_csv(nb).equals(pd.read_csv(REF / f'neighbour_table_{tag}.csv'))
+        print(f'  regenerated {tag} neighbours identical to neighbour_table_{tag}.csv: {same}')
         if not same:
-            sys.exit('the regenerated v1 neighbours differ from the committed table')
+            sys.exit(f'the regenerated {tag} neighbours differ from the committed table')
     run([PIPE / 'run_pipeline.py', '--neighbours', nb, '--tag', tag])
-    if tag == 'v1' and V1.exists():
-        new, old = (pd.read_csv(f) for f in (PIPE / 'output' / tag / 'final_test.csv', V1.with_name('final_test_v1.csv')))
-        names = ['id', 'First', 'Second', 'Third']
+    if check:
+        new, old = (pd.read_csv(f) for f in (PIPE / 'output' / tag / 'final_test.csv', REF / f'final_test_{tag}.csv'))
+        names = [c for c in old.columns if not c[0].isdigit()]          # id, First, Second, ...
         x, y = (t.drop(columns=names).to_numpy(float) for t in (new, old))
-        same = (new.shape == old.shape and new[names].equals(old[names])
+        same = (new.shape == old.shape and list(new.columns) == list(old.columns) and new[names].equals(old[names])
                 and (np.isnan(x) == np.isnan(y)).all())          # missing values in the same cells
         diff = np.nanmax(np.abs(x - y)) if same else np.inf
-        print(f'  rebuilt v1 table vs final_test_v1.csv: same stars and missing values {same}, largest difference {diff:.1e}')
+        print(f'  rebuilt {tag} table vs final_test_{tag}.csv: same stars and missing values {same}, largest difference {diff:.1e}')
         if diff > 1e-9:
-            sys.exit('the rebuilt v1 table differs from the committed final_test_v1.csv')
+            sys.exit(f'the rebuilt {tag} table differs from the committed final_test_{tag}.csv')
     rows.append(dict(matching=tag, description=desc, **summary(PIPE / 'output' / tag)))
 
 res = pd.DataFrame(rows)

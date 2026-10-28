@@ -40,6 +40,9 @@ swop_full = pd.read_csv(FILES['swop'])
 df_f      = pd.read_csv(FILES['final_test'])
 prop      = pd.read_csv(FILES['properties'])
 comp      = pd.read_csv(FILES['archive'])
+# neighbour blocks in the host-minus-neighbour table: 1_, 2_, 3_, ... (any number)
+NB = sorted({int(c.split('_')[0]) for c in df_f.columns if c.split('_')[0].isdigit()})
+NB_COLS = [c for c in nb_table.columns if c != 'SwP']      # First, Second, Third, ...
 
 def norm(s):
     return str(s).replace(' ','').strip()
@@ -73,7 +76,7 @@ for _, r in nb_table.iterrows():
     if not np.isfinite(a_swp): continue
 
     nb_ages, nb_errs = [], []
-    for nb in [norm(r['First']), norm(r['Second']), norm(r['Third'])]:
+    for nb in [norm(r[c]) for c in NB_COLS]:
         if nb in swop_lookup.index:
             a_nb, e_nb = swop_lookup.loc[nb, ['age_iso','age_iso_err']]
             if np.isfinite(a_nb):
@@ -124,8 +127,8 @@ def get_yE(row, n):
     return y, e
 
 def combine_neighbours(row):
-    Y = np.zeros((3, len(elements))); E = np.zeros((3, len(elements)))
-    for k, n in enumerate((1,2,3)):
+    Y = np.zeros((len(NB), len(elements))); E = np.zeros((len(NB), len(elements)))
+    for k, n in enumerate(NB):
         Y[k], E[k] = get_yE(row, n)
     invvar = np.where(np.isfinite(E) & (E>0), 1.0/np.where(E>0, E, np.nan)**2, 0.0)
     w_sum = invvar.sum(0)

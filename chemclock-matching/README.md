@@ -14,6 +14,7 @@ python rebuild_paper_table.py               # rebuild final_test_v0.csv and chec
 python match_neighbours.py                  # rank-mean, General Properties parameters, with replacement
 python match_neighbours.py --no-replacement
 python match_neighbours.py --params harps --drop-archive-hosts --tag harps_clean
+python match_neighbours.py --method scaled --k 10 --drop-archive-hosts --tag v2   # recommended (v2)
 ```
 
 ## crossmatch_hosts.py
@@ -33,9 +34,17 @@ an error if they differ. With tag v0 the largest difference is about 1e-16.
 
 ## match_neighbours.py
 
-Rank-mean matching: controls within ±160 K, ranked separately on |dTeff|, |dlogg| and |d[Fe/H]|,
-the three ranks averaged, the k lowest taken. Without replacement, the assignment is solved
-globally (Hungarian algorithm), so the result does not depend on host order.
+Two methods (`--method`):
+
+- `rankmean` (default; the paper's Methods text): controls within ±160 K, ranked separately on
+  |dTeff|, |dlogg| and |d[Fe/H]|, the three ranks averaged, the k lowest taken.
+- `scaled` (recommended; used for the v2 neighbour table): distance
+  √[(ΔTeff/50 K)² + (Δlog g/0.10)² + (Δ[Fe/H]/0.03)²] to every control, the k smallest taken. The
+  scales are the typical uncertainties (`--scales`); no Teff window, no ranks. v2 is
+  `--method scaled --k 10 --drop-archive-hosts`.
+
+With either method and `--no-replacement`, the assignment is solved globally (Hungarian
+algorithm), so the result does not depend on host order.
 
 Every choice the paper's Methods leave open is a flag: parameter set, Teff window, k, replacement,
 tie ranking, ranking the host with its candidates, removing archive hosts from the control pool,

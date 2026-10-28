@@ -15,7 +15,8 @@ Output: output/final_test_rebuilt.csv. Exit status 1 if the rebuilt table does
 not match the stored one.
 
 With --neighbours, builds the same table for any other neighbour table (columns
-SwP, First, Second, Third, as written by match_neighbours.py) and writes it to
+SwP, First, Second, Third, ... with any number of neighbours, as written by
+match_neighbours.py) and writes it to
 --table-out, without comparing; this is the input the paper pipeline needs.
 
 Usage:  python rebuild_paper_table.py [--data DIR] [--out DIR] [--tol 1e-9]
@@ -42,7 +43,8 @@ eps = pd.read_csv(D / 'harps_gto/epsilon_v0.csv'); eps['n'] = eps['Star'].map(no
 EPS = eps.drop_duplicates('n').set_index('n')
 stored = pd.read_csv(D / 'reference/final_test_v0.csv')
 nb = pd.read_csv(a.neighbours or D / 'reference/neighbour_table_v6.csv')
-nb = {norm(r['SwP']): [norm(r[c]) for c in ('First', 'Second', 'Third')] for _, r in nb.iterrows()}
+slots = [c for c in nb.columns if c != 'SwP']          # First, Second, Third, N4, ...
+nb = {norm(r['SwP']): [norm(r[c]) for c in slots] for _, r in nb.iterrows()}
 qs = [c[2:] for c in stored.columns if c.startswith('1_') and not c.startswith('1_e_')]
 hosts = list(nb) if a.neighbours else list(stored['id'].map(norm))
 
@@ -50,14 +52,16 @@ hosts = list(nb) if a.neighbours else list(stored['id'].map(norm))
 rows = []
 for h in hosts:
     row = {'id': h}
-    for i, (slot, n) in enumerate(zip(('First', 'Second', 'Third'), nb[h]), 1):
+    for i, (slot, n) in enumerate(zip(slots, nb[h]), 1):
         row[slot] = n
         for q in qs:
             row[f'{i}_{q}'] = EPS.at[h, q] - EPS.at[n, q]
         for q in qs:
             row[f'{i}_e_{q}'] = float(np.hypot(EPS.at[h, f'e_{q}'], EPS.at[n, f'e_{q}']))
     rows.append(row)
-rebuilt = pd.DataFrame(rows)[list(stored.columns)]
+layout = ['id'] + [c for i, slot in enumerate(slots, 1)
+                   for c in [slot] + [f'{i}_{q}' for q in qs] + [f'{i}_e_{q}' for q in qs]]
+rebuilt = pd.DataFrame(rows)[layout]                 # same layout as final_test_v0.csv, k blocks
 if a.neighbours:
     dest = Path(a.table_out or OUT / f'final_test_{Path(a.neighbours).stem}.csv')
     dest.parent.mkdir(parents=True, exist_ok=True)

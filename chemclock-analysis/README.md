@@ -4,12 +4,16 @@
 |---|---|
 | [`pipeline/`](pipeline/) | The paper's analysis: element-family offsets, chemical-clock ages, robustness tests, isochrone cross-check, Figures 1–5. |
 | [`checks/neighbour_reuse/`](checks/neighbour_reuse/) | How the results depend on shared neighbours and on the choice of neighbours. |
+| [`compare_matchings.py`](compare_matchings.py) | The whole pipeline redone for v6, v2 (recommended), v1 and six other matchings. |
+| [`checks/control_bootstrap.py`](checks/control_bootstrap.py) | Uncertainty of the v2 result including the noise of the control stars. |
 | [`tc_slopes.py`](tc_slopes.py) | The earlier slope-sign count from the original notebook, with a mode that reproduces it exactly. |
 | [`original/`](original/) | The original notebook, for reference. |
 
 ```
 python pipeline/run_pipeline.py    # the paper's results and figures
 python checks/neighbour_reuse/run_checks.py   # sensitivity to the neighbours (about 1.5 minutes)
+python compare_matchings.py        # everything redone with v2 and other neighbour tables (about 5 minutes)
+python checks/control_bootstrap.py # v2 uncertainty including control-star noise (seconds)
 python tc_slopes.py --paper        # the numbers of the original notebook, exactly
 python tc_slopes.py                # corrected slope-sign count: each element at its own Tc, one vote per host
 ```
@@ -25,7 +29,7 @@ parameters and ages, and the archive snapshot; all paths are in `pipeline/paths.
 | Script | What it does | Writes |
 |---|---|---|
 | `build_stellar_offsets.py` | host minus mean-of-neighbours ΔTeff, Δlog g, Δ[Fe/H] | `paper_stellar_offsets.csv` |
-| `robustness.py` | combines the 3 neighbours per host (inverse-variance), family means, small − giant tests, five chemical clocks, ten robustness checks | `_state_v3.pkl` |
+| `robustness.py` | combines the neighbours of each host (inverse-variance), family means, small − giant tests, five chemical clocks, ten robustness checks | `_state_v3.pkl` |
 | `figures_v3.py` | Figures 1–5 from `_state_v3.pkl` | `figures/fig1`–`fig5` |
 | `ext1_iso_age.py` | isochrone Δage against [Y/Mg] Δage, same hosts | `iso_ymg_comparison.csv`, `_state_ext1.pkl` |
 | `ext1_fig.py` | the isochrone figure | `figures/fig_iso_vs_ymg` |
@@ -74,35 +78,75 @@ Tested in [`checks/neighbour_reuse/`](checks/neighbour_reuse/) (`python checks/n
   the main open question for the paper: the headline significance depends on a neighbour table
   whose construction is not known.
 
-### Results with a reproducible neighbour table (v1)
+### Choosing the neighbours
 
-`python compare_matchings.py` builds the neighbour table for each matching choice with
-`chemclock-matching/match_neighbours.py`, runs the whole pipeline on each
-(`pipeline/run_pipeline.py --neighbours`), and writes `output/matching_comparison.csv`. **v1**
-(HARPS-GTO parameters, archive planet hosts removed from the controls, with replacement) is
-committed in `chemclock-data/data/reference/`; see the
-[data README](../chemclock-data/README.md#v1-a-reproducible-neighbour-table) for how and why.
+The paper's rank-mean method has five weaknesses, each seen in the tests above:
 
-| | v6 (paper) | **v1** | HARPS | HARPS, no repl. | General Prop. | General Prop., no repl. | General Prop., hosts removed |
-|---|---|---|---|---|---|---|---|
-| s-process diff (dex) | −0.039 | **−0.021** | −0.021 | −0.019 | −0.026 | −0.027 | −0.027 |
-| s-process σ | −4.40 | **−2.31** | −2.27 | −1.99 | −2.97 | −3.04 | −3.10 |
-| … after Δ[Fe/H] | −4.54 | **−2.43** | −2.40 | −2.19 | −3.23 | −3.39 | −3.49 |
-| … after ΔTeff, Δlog g, Δ[Fe/H] | −4.72 | **−2.49** | −2.50 | −2.37 | −3.22 | −3.38 | −3.48 |
-| [Y/Mg] Δage (Gyr) | +0.84 | **+0.30** | +0.25 | +0.11 | +0.49 | +0.50 | +0.55 |
-| [Y/Mg] σ | +2.19 | **+0.76** | +0.63 | +0.26 | +1.31 | +1.24 | +1.48 |
-| Tc slope σ, all elements | −2.21 | **−0.73** | −0.68 | −0.40 | −1.37 | −1.36 | −1.41 |
-| Tc slope σ, without s-process | −0.32 | **+0.39** | +0.37 | +0.56 | +0.06 | +0.12 | +0.11 |
-| isochrone vs [Y/Mg] age, r | +0.27 | **+0.39** | +0.42 | +0.30 | +0.42 | +0.36 | +0.45 |
-| combined age σ | +3.38 | **+3.02** | +2.98 | +1.89 | +2.89 | +2.01 | +3.47 |
+1. **Ranks discard how large a difference is.** The best-ranked candidate is first whether it is
+   5 K or 60 K away, depending on how crowded the Teff window is, and the measurement
+   uncertainties of the three parameters are never used.
+2. **Ties decide neighbours.** log g is quoted to 0.01 dex, so many candidates tie, and the tie
+   rule changes which neighbours win.
+3. **The hard Teff window and the parameter set are arbitrary,** and the result follows them:
+   rank-mean variants give −2.0σ to −3.1σ, the looser stored v6 table −4.4σ (table below).
+4. **Three neighbours are noisy.** Picking 3 of many nearly equivalent candidates moves the result
+   by about ±0.5σ on its own (random-draw test above).
+5. **It weights the parameters equally,** although s-process [X/Fe] changes strongly with [Fe/H]
+   and only weakly with Teff (about 0.01 dex per 100 K among the controls).
 
-With every reproducible matching, small-planet hosts still show lower s-process abundances than
-giant-planet hosts, but the difference is about half as large as with v6 (−0.02 to −0.03 dex
-against −0.04) and its significance falls from 4.4σ to 2.0–3.1σ. The [Y/Mg] age difference
-falls below 1.5σ. The combined isochrone + [Y/Mg] age difference stays between 1.9σ and 3.5σ.
-It uses only the 96–99 hosts that have isochrone ages, and on that subset both parts contribute
-about equally (v1: isochrone +2.65σ, [Y/Mg] +2.46σ). The [Y/Mg] difference is much larger there
-than over all 121 classified hosts (+0.76σ with v1), so which hosts have ages matters.
+**v2 uses a scaled distance instead**
+(`match_neighbours.py --method scaled --k 10 --drop-archive-hosts`): every control star gets
+d = √[(ΔTeff/50 K)² + (Δlog g/0.10)² + (Δ[Fe/H]/0.03)²], each difference divided by the typical
+HARPS-GTO uncertainty quoted in the paper, and the 10 smallest distances are the neighbours. No
+window, no ranks, almost no ties, and 10 neighbours average out much of the noise of a single
+control star. General Properties parameters; archive planet hosts removed from the controls. Other
+scales can be tried with `--scales`; the method is described in the
+[data README](../chemclock-data/README.md#v2-a-better-matching-recommended).
+
+With 10 neighbours, controls are shared between hosts, so the pipeline's σ, which treats the
+neighbour averages as exact, is too optimistic. `checks/control_bootstrap.py` redoes the matching
+inside a bootstrap over the hosts, the controls, or both:
+
+| s-process, small − giant | difference | pipeline σ | bootstrap: hosts | bootstrap: hosts + controls |
+|---|---|---|---|---|
+| v2 (10 neighbours) | −0.0425 dex | −4.72 | −5.12 | **−4.45** |
+| scaled, 3 neighbours | −0.0443 dex | −4.40 | −4.69 | −3.72 |
+
+Resampling both tends to overstate the uncertainty (see `checks/neighbour_reuse/`), so the true
+value lies between the last two columns. For the [Y/Mg] clock with v2 the same range is
++2.5σ to +2.8σ.
+
+### Results for every matching
+
+`python compare_matchings.py` runs the whole pipeline on each neighbour table and writes
+`output/matching_comparison.csv`. v2 and v1 are committed in `chemclock-data/data/reference/`,
+and the script checks that both are regenerated exactly.
+
+| | v6 (paper) | **v2** | scaled, k=3 | v1 (rank-mean) | rank-mean HARPS | … no repl. | rank-mean General | … no repl. | … hosts removed |
+|---|---|---|---|---|---|---|---|---|---|
+| s-process diff (dex) | −0.039 | **−0.043** | −0.044 | −0.021 | −0.021 | −0.019 | −0.026 | −0.027 | −0.027 |
+| s-process σ | −4.40 | **−4.72** | −4.40 | −2.31 | −2.27 | −1.99 | −2.97 | −3.04 | −3.10 |
+| … after Δ[Fe/H] | −4.54 | **−4.72** | −4.55 | −2.43 | −2.40 | −2.19 | −3.23 | −3.39 | −3.49 |
+| … after ΔTeff, Δlog g, Δ[Fe/H] | −4.72 | **−4.42** | −4.09 | −2.49 | −2.50 | −2.37 | −3.22 | −3.38 | −3.48 |
+| [Y/Mg] Δage (Gyr) | +0.84 | **+1.05** | +0.84 | +0.30 | +0.25 | +0.11 | +0.49 | +0.50 | +0.55 |
+| [Y/Mg] σ | +2.19 | **+2.66** | +1.89 | +0.76 | +0.63 | +0.26 | +1.31 | +1.24 | +1.48 |
+| Tc slope σ, all elements | −2.21 | **−2.23** | −1.99 | −0.73 | −0.68 | −0.40 | −1.37 | −1.36 | −1.41 |
+| Tc slope σ, without s-process | −0.32 | **+0.45** | −0.02 | +0.39 | +0.37 | +0.56 | +0.06 | +0.12 | +0.11 |
+| isochrone vs [Y/Mg] age, r | +0.27 | **+0.48** | +0.51 | +0.39 | +0.42 | +0.30 | +0.42 | +0.36 | +0.45 |
+| combined age σ | +3.38 | **+3.55** | +3.09 | +3.02 | +2.98 | +1.89 | +2.89 | +2.01 | +3.47 |
+
+With the scaled matching, the paper's results come back at about the paper's size: small-planet
+hosts are lower in s-process elements than giant-planet hosts by 0.043 dex (−4.4σ to −4.7σ with
+control noise and stellar-parameter regression included); the [Y/Mg] clock gives +1.05 Gyr
+(+2.5σ to +2.8σ); removing the s-process elements removes the Tc-slope difference
+(−2.2σ → +0.4σ); and the isochrone and [Y/Mg] ages agree better than with v6 (r = 0.48). The
+rank-mean matchings give about half the s-process difference; with the scaled distance the
+neighbours match [Fe/H] more closely, which is where the s-process abundances vary most.
+
+What no matching can remove: small planets are found by radial velocity mostly around quiet,
+inactive stars, which tend to be older, and magnetic activity is known to affect Ba abundances.
+A detection bias of this kind would make small-planet hosts look older for reasons unrelated
+to planet formation, and should be discussed alongside the result.
 
 The figure texts in `figures_v3.py` (for example "Five chemical clocks all agree", "No correlation
 with Δ[Fe/H]") were written for the v6 results and are not updated for other matchings.
@@ -117,8 +161,6 @@ with Δ[Fe/H]") were written for the v6 results and are not updated for other ma
   significance; and the "robust regime" band in Figure 5(c) is drawn by hand at 1100–1300 K.
 - The [Y/Mg] calibration (−0.041 dex/Gyr) is cited as Tucci Maia 2019 in four comments and as
   Tucci Maia et al. 2016 in one (`robustness.py`, `ext1_iso_age.py`); check which the paper means.
-- The pipeline reads the v6 table only. To run it on a new matching, `final_test` and
-  `neighbours` in `paths.py` would have to point at tables in the same layout.
 
 ## tc_slopes.py
 

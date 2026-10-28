@@ -32,6 +32,8 @@ tc   = pd.read_csv(FILES['tc'])
 prop = pd.read_csv(FILES['properties'])
 comp = pd.read_csv(FILES['archive'])
 stellar_offsets = pd.read_csv(OUT+'/paper_stellar_offsets.csv')
+# neighbour blocks in the host-minus-neighbour table: 1_, 2_, 3_, ... (any number)
+NB = sorted({int(c.split('_')[0]) for c in df_f.columns if c.split('_')[0].isdigit()})
 
 elem_cols = [c for c in df_f.columns
              if c.startswith('1_[') and c.endswith('/Fe]')
@@ -55,8 +57,8 @@ def get_yE(row, n):
     return y, e
 
 def combine_neighbours(row):
-    Y = np.zeros((3, len(elements))); E = np.zeros((3, len(elements)))
-    for k, n in enumerate((1,2,3)):
+    Y = np.zeros((len(NB), len(elements))); E = np.zeros((len(NB), len(elements)))
+    for k, n in enumerate(NB):
         Y[k], E[k] = get_yE(row, n)
     invvar = np.where(np.isfinite(E) & (E>0), 1.0/np.where(E>0, E, np.nan)**2, 0.0)
     w_sum = invvar.sum(0)
@@ -219,8 +221,8 @@ for clock_name, (e1, e2, slope_per_gyr) in CLOCKS.items():
         # Inverse-variance combine each element across the 3 neighbours
         # (same weighting as the family decomposition), then difference.
         def ivw(elem):
-            v = np.array([row.get(f'{n}_[{elem}/Fe]', np.nan) for n in (1,2,3)], float)
-            e = np.array([row.get(f'{n}_e_[{elem}/Fe]', np.nan) for n in (1,2,3)], float)
+            v = np.array([row.get(f'{n}_[{elem}/Fe]', np.nan) for n in NB], float)
+            e = np.array([row.get(f'{n}_e_[{elem}/Fe]', np.nan) for n in NB], float)
             m = np.isfinite(v) & np.isfinite(e) & (e > 0)
             if not m.any(): return np.nan
             w = 1/e[m]**2

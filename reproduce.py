@@ -6,7 +6,8 @@
   3. neighbour matching with the default settings and two variants
   4. the paper's analysis pipeline and its figures
   5. how the results depend on the neighbours (reuse, rematching)
-  6. the whole analysis redone with the v1 neighbour table and other matchings
+  6. the whole analysis redone with the v2 neighbour table (recommended) and other matchings,
+     and the v2 uncertainty including the noise of the control stars
   7. the original notebook's slope-sign count, then the corrected count
 
 Stops at the first step that fails. Outputs go to chemclock-matching/output/,
@@ -33,7 +34,8 @@ STEPS = [
      [MATCH / 'match_neighbours.py', '--params', 'harps', '--drop-archive-hosts', '--tag', 'harps_clean']),
     ('4. paper analysis and figures', [ANALYSIS / 'pipeline' / 'run_pipeline.py']),
     ('5. neighbour-reuse and matching checks', [ANALYSIS / 'checks' / 'neighbour_reuse' / 'run_checks.py']),
-    ('6. redo the analysis with v1 and other matchings', [ANALYSIS / 'compare_matchings.py']),
+    ('6a. redo the analysis with v2, v1 and other matchings', [ANALYSIS / 'compare_matchings.py']),
+    ('6b. v2 uncertainty including control-star noise', [ANALYSIS / 'checks' / 'control_bootstrap.py']),
     ('7a. slope-sign count: original notebook', [ANALYSIS / 'tc_slopes.py', '--paper']),
     ('7b. slope-sign count: corrected', [ANALYSIS / 'tc_slopes.py']),
 ]

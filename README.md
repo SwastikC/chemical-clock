@@ -12,7 +12,7 @@ in the HARPS-GTO sample with those of their closest "twin" stars without planets
 
 ---
 
-## Quick start (about 5 minutes)
+## Quick start (about 7 minutes)
 
 You need Python 3.9 or newer and `git`.
 
@@ -167,31 +167,44 @@ gives a stronger result than the matching method it is said to come from, and it
 regenerated (see "What can and cannot be reproduced" below). Details:
 [chemclock-analysis/README.md](chemclock-analysis/README.md#neighbour-reuse-and-the-choice-of-neighbours).
 
-### Step 6. Redo everything with a reproducible neighbour table (v1)
+### Step 6. Redo everything with a reproducible neighbour table (v2)
 
 ```bash
 python chemclock-analysis/compare_matchings.py
 ```
 
-Takes about 3 minutes. Builds the neighbour table again for each reasonable matching choice,
+```bash
+python chemclock-analysis/checks/control_bootstrap.py
+```
+
+The first takes about 5 minutes: it builds the neighbour table again for each matching choice,
 runs the whole paper pipeline on each, and prints the main numbers side by side
 (`chemclock-analysis/output/matching_comparison.csv`; figures for each in
-`chemclock-analysis/pipeline/output/<matching>/figures/`). **v1** is the proposed replacement for
-the stored v6 table: the rank-mean method with the HARPS-GTO parameters and the archive planet
-hosts removed from the control pool, chosen before any result was looked at. It is committed as
-`chemclock-data/data/reference/neighbour_table_v1.csv`, and the script checks that it is
-regenerated exactly.
+`chemclock-analysis/pipeline/output/<matching>/figures/`). The second (a few seconds) adds the
+noise of the control stars to the uncertainty of the main result.
 
-| | v6 (paper) | **v1** | HARPS, no repl. | General Prop. | General Prop., no repl. |
+**v2 is the recommended neighbour table.** Each host gets the 10 control stars closest in
+(Teff, log g, [Fe/H]), with every difference measured in units of its typical uncertainty
+(50 K, 0.10 dex, 0.03 dex, the values quoted in the paper):
+d = √[(ΔTeff/50)² + (Δlog g/0.10)² + (Δ[Fe/H]/0.03)²]. General Properties parameters; archive planet
+hosts removed from the controls. Unlike the paper's rank-mean method it needs no Teff window,
+does not throw away how large a difference is, has almost no ties, and averages 10 neighbours
+instead of 3. It is committed as `chemclock-data/data/reference/neighbour_table_v2.csv` (with
+`final_test_v2.csv`), and the script checks that both are regenerated exactly. Why this method:
+[chemclock-analysis/README.md](chemclock-analysis/README.md#choosing-the-neighbours).
+
+| | v6 (paper) | **v2 (recommended)** | scaled, 3 neighbours | v1 (rank-mean) | rank-mean, General Prop. |
 |---|---|---|---|---|---|
-| s-process, small − giant | −4.40σ | **−2.31σ** | −1.99σ | −2.97σ | −3.04σ |
-| … after ΔTeff, Δlog g, Δ[Fe/H] | −4.72σ | **−2.49σ** | −2.37σ | −3.22σ | −3.38σ |
-| [Y/Mg] Δage, small − giant | +0.84 Gyr (+2.2σ) | **+0.30 Gyr (+0.8σ)** | +0.11 Gyr (+0.3σ) | +0.49 Gyr (+1.3σ) | +0.50 Gyr (+1.2σ) |
-| Tc slope, with / without s-process | −2.2σ / −0.3σ | **−0.7σ / +0.4σ** | −0.4σ / +0.6σ | −1.4σ / +0.1σ | −1.4σ / +0.1σ |
-| Isochrone + [Y/Mg] combined age | +3.4σ | **+3.0σ** | +1.9σ | +2.9σ | +2.0σ |
+| s-process, small − giant | −0.039 dex, −4.40σ | **−0.043 dex, −4.72σ** | −0.044 dex, −4.40σ | −0.021 dex, −2.31σ | −0.026 dex, −2.97σ |
+| … including control-star noise | | **−4.45σ** | −3.72σ | | |
+| … after ΔTeff, Δlog g, Δ[Fe/H] | −4.72σ | **−4.42σ** | −4.09σ | −2.49σ | −3.22σ |
+| [Y/Mg] Δage, small − giant | +0.84 Gyr (+2.2σ) | **+1.05 Gyr (+2.7σ)** | +0.84 Gyr (+1.9σ) | +0.30 Gyr (+0.8σ) | +0.49 Gyr (+1.3σ) |
+| Tc slope, with / without s-process | −2.2σ / −0.3σ | **−2.2σ / +0.4σ** | −2.0σ / −0.0σ | −0.7σ / +0.4σ | −1.4σ / +0.1σ |
+| Isochrone vs [Y/Mg] age, r | +0.27 | **+0.48** | +0.51 | +0.39 | +0.42 |
+| Isochrone + [Y/Mg] combined age | +3.4σ | **+3.5σ** | +3.1σ | +3.0σ | +2.9σ |
 
 To run the pipeline on a single neighbour table:
-`python chemclock-analysis/pipeline/run_pipeline.py --neighbours chemclock-data/data/reference/neighbour_table_v1.csv --tag v1`.
+`python chemclock-analysis/pipeline/run_pipeline.py --neighbours chemclock-data/data/reference/neighbour_table_v2.csv --tag v2`.
 
 ### Step 7. The early slope-sign count (original notebook)
 
@@ -230,8 +243,9 @@ giant 38 / 34 hosts. To use your own matching, pass a pair table from Step 3 wit
   [data README](chemclock-data/README.md#known-issues-in-the-data-open-to-be-resolved-by-the-students).
   It matters: the stored neighbours are looser matches (median |ΔTeff| 43–45 K, against 15–17 K
   for the rank-mean method) and give a stronger result (−4.40σ) than the rank-mean method does
-  when redone (−2.0σ to −3.0σ; Step 5). **v1** (Step 6) is a neighbour table made entirely by
-  code, with the whole analysis redone on it.
+  when redone (−2.0σ to −3.0σ; Step 5). **v2** (Step 6) is a neighbour table made entirely by
+  code with a better matching method, and the whole analysis redone on it: the s-process result
+  is −0.043 dex at −4.4σ to −4.7σ.
 - **Errors found:** in the original notebook (Step 7) and small ones in the pipeline (Step 4); see
   [chemclock-analysis/README.md](chemclock-analysis/README.md).
 
