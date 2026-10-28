@@ -1,6 +1,6 @@
 """How much does the result move across reasonable neighbour choices?
 For each host, draw 3 of its 10 best rank-mean candidates at random; repeat. Same epsilon differences as v6."""
-import sys; sys.path.insert(0, '.')
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from rematch import *
 rng = np.random.default_rng(11)
 NDRAW = 400
@@ -24,4 +24,4 @@ for src in ('general', 'harps'):
           f'fraction at or beyond stored {st:+.2f}: {np.mean(s <= st):.4f}')
     for k in CLOCKS:
         a = np.array(sig[k]); print(f'    {k:8s} median {np.median(a):+.2f} [{np.percentile(a,16):+.2f}, {np.percentile(a,84):+.2f}]')
-    pd.DataFrame(sig).to_csv(f'matching_spread_{src}.csv', index=False)
+    pd.DataFrame(sig).to_csv(f'{OUT}/matching_spread_{src}.csv', index=False)

@@ -1,6 +1,6 @@
 """Is the two-way bootstrap SE right for this design? Simulate on the real host-neighbour graph.
 Model: y_h = mu_class + a_h - mean_{n in N(h)} b_n.  sigma_a, sigma_b estimated from the data."""
-import sys; sys.path.insert(0, '.')
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core import *
 rng = np.random.default_rng(7)
 P = from_final_test()
@@ -85,4 +85,4 @@ for k in allv:
     d, se, sg = welch(yk, cls)[:3]
     rows.append(dict(quantity=k, diff=d, welch_sigma=sg, inflation=f, corrected_sigma=sg/f))
     print(f'  {k:10s} inflation {f:.3f}   {sg:+.2f} sigma -> {sg/f:+.2f} sigma')
-pd.DataFrame(rows).to_csv('reuse_inflation.csv', index=False)
+pd.DataFrame(rows).to_csv(f'{OUT}/reuse_inflation.csv', index=False)

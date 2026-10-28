@@ -1,5 +1,5 @@
 """Neighbour-reuse tests on the stored v6 neighbour table (131 hosts, 393 pairs)."""
-import sys; sys.path.insert(0, '.')
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core import *
 from scipy.stats import norm as N01
 rng = np.random.default_rng(20261025)
@@ -61,7 +61,7 @@ for k, (d, se, s, ns, ng) in obs.items():
     print(f'{k:10s} {d:+8.4f} {se:9.4f} {s:+6.2f} | {se_h:8.4f} {se_n:8.4f} {se_2:8.4f} {d/se_2:+9.2f} {se_2/se:5.2f} {fs:15.4f}')
     rows.append(dict(quantity=k, diff=d, welch_se=se, welch_sigma=s, se_hosts=se_h, se_neighbours=se_n,
                      se_twoway=se_2, sigma_twoway=d/se_2, ci95_lo=lo, ci95_hi=hi, frac_same_sign=fs))
-pd.DataFrame(rows).to_csv('reuse_bootstrap_summary.csv', index=False)
+pd.DataFrame(rows).to_csv(f'{OUT}/reuse_bootstrap_summary.csv', index=False)
 
 # ---- leave-one-neighbour-out
 print('\n== Leave-one-neighbour-out (each of the', P.U, 'neighbours removed from every host that uses it)')

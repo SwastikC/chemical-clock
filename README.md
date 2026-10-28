@@ -12,7 +12,7 @@ in the HARPS-GTO sample with those of their closest "twin" stars without planets
 
 ---
 
-## Quick start (about 1 minute)
+## Quick start (about 2 minutes)
 
 You need Python 3.9 or newer and `git`.
 
@@ -145,7 +145,29 @@ The full printout of every test is in the terminal output.
 [chemclock-analysis/README.md](chemclock-analysis/README.md#pipeline-the-papers-analysis) lists
 the fixes made to the pipeline and the questions it leaves open.
 
-### Step 5. The early slope-sign count (original notebook)
+### Step 5. How much do the results depend on the neighbours?
+
+```bash
+python chemclock-analysis/checks/neighbour_reuse/run_checks.py
+```
+
+Takes about 1.5 minutes. Expected, for the s-process small − giant result:
+
+| Test | s-process σ |
+|---|---|
+| Stored neighbour table (Step 4) | −4.40 |
+| … corrected for neighbours shared between hosts | −4.30 |
+| … leaving out any one neighbour | −4.05 to −4.52 |
+| Rank-mean matching redone, General Properties parameters | −2.97 (−2.94 without replacement) |
+| Rank-mean matching redone, HARPS columns | −2.27 (−1.99 without replacement) |
+| Random 3 of each host's 10 best candidates (median, 16–84%) | −3.80 (−4.28 to −3.32) |
+
+Sharing neighbours barely matters; which neighbours are chosen matters a lot. The stored table
+gives a stronger result than the matching method it is said to come from, and it cannot be
+regenerated (see "What can and cannot be reproduced" below). Details:
+[chemclock-analysis/README.md](chemclock-analysis/README.md#neighbour-reuse-and-the-choice-of-neighbours).
+
+### Step 6. The early slope-sign count (original notebook)
 
 ```bash
 python chemclock-analysis/tc_slopes.py --paper
@@ -174,13 +196,16 @@ giant 38 / 34 hosts. To use your own matching, pass a pair table from Step 3 wit
 
 - **Reproduced exactly:** the paper's input table `final_test_v0.csv`, from the v6 neighbours and
   the v0 abundances (Step 2); the paper's results and figures from that table (Step 4); and the
-  notebook's slope-sign counts (Step 5, `--paper`).
+  notebook's slope-sign counts (Step 6, `--paper`).
 - **Not reproduced:** the v6 neighbours themselves. Neither these scripts nor the original
   notebook (`chemclock-matching/original/`) gives the same three neighbours for more than about
   10 of the 131 hosts. The procedure that produced `neighbour_table_v6.csv` was not recorded well
   enough to regenerate it. This is open issue 6 in the
   [data README](chemclock-data/README.md#known-issues-in-the-data-open-to-be-resolved-by-the-students).
-- **Errors found:** in the original notebook (Step 5) and small ones in the pipeline (Step 4); see
+  It matters: the stored neighbours are looser matches (median |ΔTeff| 43–45 K, against 15–17 K
+  for the rank-mean method) and give a stronger result (−4.40σ) than the rank-mean method does
+  when redone (−2.0σ to −3.0σ; Step 5).
+- **Errors found:** in the original notebook (Step 6) and small ones in the pipeline (Step 4); see
   [chemclock-analysis/README.md](chemclock-analysis/README.md).
 
 ## Rules for reporting a result

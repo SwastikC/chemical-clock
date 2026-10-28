@@ -3,11 +3,13 @@
 | | |
 |---|---|
 | [`pipeline/`](pipeline/) | The paper's analysis: element-family offsets, chemical-clock ages, robustness tests, isochrone cross-check, Figures 1–5. |
+| [`checks/neighbour_reuse/`](checks/neighbour_reuse/) | How the results depend on shared neighbours and on the choice of neighbours. |
 | [`tc_slopes.py`](tc_slopes.py) | The earlier slope-sign count from the original notebook, with a mode that reproduces it exactly. |
 | [`original/`](original/) | The original notebook, for reference. |
 
 ```
 python pipeline/run_pipeline.py    # the paper's results and figures
+python checks/neighbour_reuse/run_checks.py   # sensitivity to the neighbours (about 1.5 minutes)
 python tc_slopes.py --paper        # the numbers of the original notebook, exactly
 python tc_slopes.py                # corrected slope-sign count: each element at its own Tc, one vote per host
 ```
@@ -54,12 +56,26 @@ changed; its output is identical to the original scripts. The changes after that
 5. A divide-by-zero warning was printed several hundred times; the computation was already
    correct and is unchanged.
 
-### Open questions (not changed)
+### Neighbour reuse and the choice of neighbours
 
-- **Hosts are not independent.** 85 of the 273 neighbour stars serve more than one host (up to
-  five), and 38 serve both a small- and a giant-planet host. The σ values treat the hosts as
-  independent, so they are probably somewhat too large. Comparing with a matching without
-  replacement (`match_neighbours.py --no-replacement`) would show by how much.
+Tested in [`checks/neighbour_reuse/`](checks/neighbour_reuse/) (`python checks/neighbour_reuse/run_checks.py`):
+
+- **Reuse is a small effect.** 83 of the 270 neighbours serve 2–4 of the 131 hosts, and 38 serve
+  both a small- and a giant-planet host. Accounting for it lowers the s-process result from
+  −4.40σ to −4.30σ (variance inflation 1.02–1.03 for every quantity). Leaving out any one
+  neighbour keeps it between −4.05σ and −4.52σ.
+- **The choice of neighbours is a large effect.** The rank-mean matching the paper describes,
+  redone here, gives −2.97σ with the General Properties parameters and −2.27σ with the HARPS
+  columns, with or without replacement. Random choices of 3 among each host's 10 best candidates
+  give a median of −3.80σ (−3.47σ with HARPS columns); the stored table's −4.40σ is at the 13th
+  (3rd) percentile of those draws. The clock ages move the same way.
+- **The stored neighbours are looser matches than the stated method gives:** median |ΔTeff| 43–45 K
+  against 15–17 K. Together with data issue 6 (the stored table cannot be regenerated), this is
+  the main open question for the paper: the headline significance depends on a neighbour table
+  whose construction is not known.
+
+### Other open questions (not changed)
+
 - **Planet classes use `hd_name` only** (data README, issue 3): 121 hosts classified, against 124
   with the identifier-and-position crossmatch of `crossmatch_hosts.py`.
 - **Archive hosts in the control pool** (data README, issue 2): 10 of the v6 neighbours are

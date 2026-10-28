@@ -2,6 +2,8 @@
 import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'pipeline'))
 from paths import FILES
 import numpy as np, pandas as pd
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')   # CSVs written by the checks
+os.makedirs(OUT, exist_ok=True)
 norm = lambda s: str(s).replace(' ', '').strip()
 ELS = ['Zn','Cu','Na','Mn','V','Cr','Co','Ni','Mg','Si','Ca','Ti','Sc','Al','Sr','Y','Ba','Ce']
 SP = ['Sr','Y','Ba','Ce']

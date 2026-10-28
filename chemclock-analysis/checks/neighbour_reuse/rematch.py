@@ -1,7 +1,7 @@
 """Redo the rank-mean matching with and without replacement and compare the headline numbers.
 The stored neighbour table cannot be regenerated exactly (see README), so both arms use the same
 re-implementation; the with-replacement arm is the like-for-like control for the no-replacement arm."""
-import sys; sys.path.insert(0, '.')
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core import *
 from scipy.stats import rankdata
 from scipy.optimize import linear_sum_assignment
@@ -48,7 +48,6 @@ def without_replacement(R, pool):
 
 def quality(assign, P):
     d = np.array([(P.loc[h] - P.loc[n]).abs().values for h, ns in assign.items() for n in ns])
-    ranks = np.array([R_[h][n] for h, ns in assign.items() for n in ns]) if False else None
     return np.median(d, 0), d.max(0)
 
 def summarise(assign):
@@ -56,31 +55,32 @@ def summarise(assign):
     hv = Pr.host_values(np.ones((1, len(Pr.ph))))
     return Pr, {k: welch(v[0], Pr.cls) for k, v in hv.items()}
 
-rows = []
-stored = from_final_test()
-st = {k: welch(v[0], stored.cls) for k, v in stored.host_values(np.ones((1, len(stored.ph)))).items()}
-rows.append(('stored v6 table', 'n/a', stored, st, None))
-for src in ('general', 'harps'):
-    P = params(src)
-    R, pool = rank_table(P)
-    for name, fn in (('with replacement', with_replacement), ('without replacement', without_replacement)):
-        a = fn(R, pool) if fn is without_replacement else fn(R)
-        Pr, res = summarise(a)
-        rows.append((name, src, Pr, res, quality(a, P)))
-        pd.DataFrame([(h, *ns) for h, ns in a.items()], columns=['SwP', 'First', 'Second', 'Third']).to_csv(
-            f'neighbours_{src}_{"wr" if fn is with_replacement else "nr"}.csv', index=False)
+if __name__ == '__main__':   # matching_spread.py imports the functions above without running this
+    rows = []
+    stored = from_final_test()
+    st = {k: welch(v[0], stored.cls) for k, v in stored.host_values(np.ones((1, len(stored.ph)))).items()}
+    rows.append(('stored v6 table', 'n/a', stored, st, None))
+    for src in ('general', 'harps'):
+        P = params(src)
+        R, pool = rank_table(P)
+        for name, fn in (('with replacement', with_replacement), ('without replacement', without_replacement)):
+            a = fn(R, pool) if fn is without_replacement else fn(R)
+            Pr, res = summarise(a)
+            rows.append((name, src, Pr, res, quality(a, P)))
+            pd.DataFrame([(h, *ns) for h, ns in a.items()], columns=['SwP', 'First', 'Second', 'Third']).to_csv(
+                f'{OUT}/neighbours_{src}_{"wr" if fn is with_replacement else "nr"}.csv', index=False)
 
-Q = list(st)
-print(f"{'matching':22s} {'params':8s} {'uniq nb':>7s} {'max use':>7s} {'med dT':>6s} {'med dg':>6s} {'med dF':>6s} {'max dT':>6s} | " + ' '.join(f'{q:>9s}' for q in Q))
-out = []
-for name, src, Pr, res, qual in rows:
-    use = np.bincount(Pr.pn)
-    qs = f'{qual[0][0]:6.0f} {qual[0][1]:6.3f} {qual[0][2]:6.3f} {qual[1][0]:6.0f}' if qual else ' '*27
-    print(f'{name:22s} {src:8s} {Pr.U:7d} {use.max():7d} {qs} | ' + ' '.join(f'{res[q][2]:+9.2f}' for q in Q))
-    for q in Q:
-        out.append(dict(matching=name, params=src, quantity=q, diff=res[q][0], se=res[q][1], sigma=res[q][2], n_small=res[q][3], n_giant=res[q][4]))
-print('\ndifferences (s-process in dex, clocks in Gyr):')
-print(f"{'matching':22s} {'params':8s} | " + ' '.join(f'{q:>9s}' for q in Q))
-for name, src, Pr, res, qual in rows:
-    print(f'{name:22s} {src:8s} | ' + ' '.join(f'{res[q][0]:+9.4f}' if q == 's-process' else f'{res[q][0]:+9.2f}' for q in Q))
-pd.DataFrame(out).to_csv('rematch_summary.csv', index=False)
+    Q = list(st)
+    print(f"{'matching':22s} {'params':8s} {'uniq nb':>7s} {'max use':>7s} {'med dT':>6s} {'med dg':>6s} {'med dF':>6s} {'max dT':>6s} | " + ' '.join(f'{q:>9s}' for q in Q))
+    out = []
+    for name, src, Pr, res, qual in rows:
+        use = np.bincount(Pr.pn)
+        qs = f'{qual[0][0]:6.0f} {qual[0][1]:6.3f} {qual[0][2]:6.3f} {qual[1][0]:6.0f}' if qual else ' '*27
+        print(f'{name:22s} {src:8s} {Pr.U:7d} {use.max():7d} {qs} | ' + ' '.join(f'{res[q][2]:+9.2f}' for q in Q))
+        for q in Q:
+            out.append(dict(matching=name, params=src, quantity=q, diff=res[q][0], se=res[q][1], sigma=res[q][2], n_small=res[q][3], n_giant=res[q][4]))
+    print('\ndifferences (s-process in dex, clocks in Gyr):')
+    print(f"{'matching':22s} {'params':8s} | " + ' '.join(f'{q:>9s}' for q in Q))
+    for name, src, Pr, res, qual in rows:
+        print(f'{name:22s} {src:8s} | ' + ' '.join(f'{res[q][0]:+9.4f}' if q == 's-process' else f'{res[q][0]:+9.2f}' for q in Q))
+    pd.DataFrame(out).to_csv(f'{OUT}/rematch_summary.csv', index=False)
