@@ -74,7 +74,7 @@ for ax, grp_label, df_grp, color, marker in [
     ax.set_ylim(-0.07, 0.06)
 
 legend_elems = [Patch(facecolor=FAMILY_COLOR[f], alpha=0.4, label=f) for f in FAMILIES]
-axes[0].legend(handles=legend_elems, loc='lower right', frameon=True, ncol=4)
+axes[1].legend(handles=legend_elems, loc='lower right', frameon=True, ncol=4)   # empty part of the plot
 axes[1].set_xlabel(r'Condensation temperature  $T_{\rm C}$  (K)')
 plt.tight_layout()
 plt.savefig(f'{OUT}/figures/fig1_per_element.pdf')
@@ -169,12 +169,14 @@ ax.axvline(0, color='grey', lw=0.6, ls='--')
 ax.set_yticks(y_pos); ax.set_yticklabels(clocks)
 ax.set_xlabel(r'$\Delta_{\rm age}$  (Gyr)')
 ax.set_title('(a) Five chemical clocks all agree')
-ax.legend(loc='lower right', frameon=True)
-# Annotate sigma
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), ncol=2, frameon=False)
+# Annotate sigma to the right of the longest bar; the axis follows the data
+right = max(max(m + e for m, e in zip(small_means, small_ses)), max(m + e for m, e in zip(giant_means, giant_ses)))
+left = min(min(m - e for m, e in zip(small_means, small_ses)), min(m - e for m, e in zip(giant_means, giant_ses)))
 for i, c in enumerate(clocks):
     sig = clock_results[c]['sigma']
-    ax.text(1.5, i, f' $\\sigma$ = {sig:+.1f}', va='center', fontsize=8, color='dimgray')
-ax.set_xlim(-0.7, 2.0)
+    ax.text(right + 0.1, i, f' $\\sigma$ = {sig:+.1f}', va='center', fontsize=8, color='dimgray')
+ax.set_xlim(min(-0.7, left - 0.2), right + 0.8)
 
 # Panel B: continuous mass trend with regression line
 ax = axes[1]
@@ -207,7 +209,7 @@ ax.axvline(0.3, color='goldenrod', ls='--', lw=1, label='small/giant cut')
 ax.set_xscale('log')
 ax.set_xlabel(r'Planet mass  $M_p \sin i$  ($M_{\rm J}$)')
 ax.set_ylabel(r'$\Delta_{\rm age}$  (Gyr)')
-slope_str = (f"$\\beta = {obj10['slope']:+.2f}^{{+{obj10['slope_hi']-obj10['slope']:+.2f}}}"
+slope_str = (f"$\\beta = {obj10['slope']:+.2f}^{{{obj10['slope_hi']-obj10['slope']:+.2f}}}"
              f"_{{{obj10['slope_lo']-obj10['slope']:+.2f}}}$ Gyr/dex\n"
              f"$r = {obj10['r']:+.2f}$, $p = {obj10['p']:.3f}$")
 ax.text(0.04, 0.95, slope_str, transform=ax.transAxes, va='top', fontsize=9,

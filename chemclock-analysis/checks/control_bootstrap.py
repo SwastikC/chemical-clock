@@ -2,9 +2,9 @@
 
 The pipeline's sigma treats each host's neighbour average as exact. With the
 scaled matching and 10 neighbours, controls are shared between hosts and their own
-scatter adds to the uncertainty. This script redoes the scaled matching
-(match_neighbours.py --method scaled --drop-archive-hosts, General Properties
-parameters) inside a bootstrap:
+scatter adds to the uncertainty. This script redoes the matching of
+chemclock-matching/match_neighbours.py (scaled distance, General Properties
+parameters, archive planet hosts removed) inside a bootstrap:
 
   hosts     resample the small and the giant hosts (separately, with replacement)
   controls  resample the control pool (with replacement) and rematch every host
@@ -12,12 +12,13 @@ parameters) inside a bootstrap:
 
 and reports the standard error of the small-minus-giant difference for the
 s-process family and the [Y/Mg] clock under each scheme. The "hosts" scheme is the
-usual standard error; "both" adds the control noise. The checks in
-neighbour_reuse/ show that resampling both tends to overstate the error, so the
-two bracket the true value.
+usual standard error; "both" adds the control noise. Resampling both at once
+tends to overstate the error a little, because each host value already contains
+its neighbours' scatter, so the two bracket the true value.
 
-The unresampled estimate is the same quantity the pipeline computes (neighbours
-combined by inverse variance, element by element), and is checked against it.
+The unresampled estimate is computed as in the pipeline (neighbours combined by
+inverse variance, element by element); with the defaults it equals the pipeline's
+s-process difference, -0.0425 dex.
 
 Usage:  python control_bootstrap.py [--k 10] [--scales 50 0.10 0.03] [--n-boot 500]
 """
@@ -43,7 +44,7 @@ SP = ['Sr', 'Y', 'Ba', 'Ce']
 ELS = SP + ['Mg']                     # s-process family and the [Y/Mg] clock
 YMG_SLOPE = -0.041                    # dex/Gyr, Tucci Maia et al. 2016, as in the pipeline
 
-# ---- inputs, as in match_neighbours.py --method scaled --drop-archive-hosts --params general
+# ---- inputs, as in chemclock-matching/match_neighbours.py
 eps = pd.read_csv(D / 'harps_gto/epsilon_v0.csv'); eps['n'] = eps['Star'].map(norm)
 E = eps.drop_duplicates('n').set_index('n')
 gp = pd.read_csv(D / 'harps_gto/general_properties.csv'); gp['n'] = gp['Star'].map(norm)
@@ -53,7 +54,7 @@ if not Path(a.crossmatch).exists():
 xm = pd.read_csv(a.crossmatch)
 pool = set(eps.loc[eps['SwP?'] == 'No', 'n']) - set(xm.loc[xm['archive_host'].notna(), 'star'])
 C = P[P.index.isin(pool)]
-hosts = list(pd.read_csv(D / 'reference/final_test_v0.csv')['id'].map(norm))
+hosts = list(pd.read_csv(D / "reference/hosts.csv")["host"].map(norm))
 
 # planet class as in the pipeline: largest Mp sin i, joined on the archive hd_name
 arc = pd.read_csv(D / 'nasa/nasa_archive_snapshot.csv', low_memory=False)

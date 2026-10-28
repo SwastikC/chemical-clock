@@ -1,20 +1,17 @@
 # chemclock-matching
 
-Host crossmatch and neighbour matching for the chemical-clock project. The step-by-step guide
-with expected numbers is in the [top-level README](../README.md); `python ../reproduce.py` runs
-everything.
+Host crossmatch, neighbour matching and the host-minus-neighbour table for the chemical-clock
+project. The step-by-step guide with expected numbers is in the [top-level README](../README.md);
+`python ../reproduce.py` runs everything.
 
 The scripts read `../chemclock-data/data` and write to `output/` next to this file, whatever
 folder you run them from (pass `--data` or `--out` to change that). `output/` is not committed.
 
 ```
 pip install -r ../requirements.txt
-python crossmatch_hosts.py                  # archive hosts -> HARPS-GTO stars, classes at 0.3 Mj
-python rebuild_paper_table.py               # rebuild final_test_v0.csv and check it
-python match_neighbours.py                  # rank-mean, General Properties parameters, with replacement
-python match_neighbours.py --no-replacement
-python match_neighbours.py --params harps --drop-archive-hosts --tag harps_clean
-python match_neighbours.py --method scaled --k 10 --drop-archive-hosts --tag v2   # recommended (v2)
+python crossmatch_hosts.py      # archive hosts -> HARPS-GTO stars, classes at 0.3 Mj
+python match_neighbours.py      # the v2 neighbours, checked against the committed table
+python build_table.py           # the host-minus-neighbour table, checked against final_test_v2.csv
 ```
 
 ## crossmatch_hosts.py
@@ -23,46 +20,28 @@ Matches every HARPS-GTO star to the archive snapshot: first by identifier (HD, H
 trailing component letter allowed on the HARPS side), then by position within 60 arcsec. The
 positions differ in epoch (J2000 against Gaia), which is why identifiers come first. Each matched
 star gets the largest Mp sin i among its planets and a small/giant class. The summary lists stars
-whose HARPS host flag disagrees with the archive.
-
-## rebuild_paper_table.py
-
-Rebuilds the paper v6 input table `final_test_v0.csv` from `neighbour_table_v6.csv` and
-`epsilon_v0.csv` (host minus neighbour, errors in quadrature), writes
-`output/final_test_rebuilt.csv` and compares it cell by cell with the stored table. It exits with
-an error if they differ. With tag v0 the largest difference is about 1e-16.
+whose HARPS host flag disagrees with the archive. `match_neighbours.py` uses the output to remove
+archive planet hosts from the controls.
 
 ## match_neighbours.py
 
-Two methods (`--method`):
+For each host in `hosts.csv`, the distance to every control star is
 
-- `rankmean` (default; the paper's Methods text): controls within ±160 K, ranked separately on
-  |dTeff|, |dlogg| and |d[Fe/H]|, the three ranks averaged, the k lowest taken.
-- `scaled` (recommended; used for the v2 neighbour table): distance
-  √[(ΔTeff/50 K)² + (Δlog g/0.10)² + (Δ[Fe/H]/0.03)²] to every control, the k smallest taken. The
-  scales are the typical uncertainties (`--scales`); no Teff window, no ranks. v2 is
-  `--method scaled --k 10 --drop-archive-hosts`.
+d = √[ (ΔTeff / 50 K)² + (Δlog g / 0.10)² + (Δ[Fe/H] / 0.03)² ]
 
-With either method and `--no-replacement`, the assignment is solved globally (Hungarian
-algorithm), so the result does not depend on host order.
+with General Properties parameters, and the 10 closest controls are the neighbours. Controls are
+the non-host stars of `epsilon_v0.csv` minus the archive planet hosts; a control can serve
+several hosts. With the defaults the result is the committed `neighbour_table_v2.csv`, and the
+script stops if it is not. `--k` and `--scales` change the number of neighbours and the scales,
+for comparisons (`--tag` names the output).
 
-Every choice the paper's Methods leave open is a flag: parameter set, Teff window, k, replacement,
-tie ranking, ranking the host with its candidates, removing archive hosts from the control pool,
-and the host list. Run `python match_neighbours.py -h` for the list.
+Each run writes `neighbours_<tag>.csv` (one row per host, closest first) and `pairs_<tag>.csv`
+(one row per host-neighbour pair with Δ[X/Fe] and its error for 18 elements, ΔTeff, Δlog g,
+Δ[Fe/H] and the distance).
 
-Each run writes `neighbours_<tag>.csv` and `pairs_<tag>.csv`. The pair table is the agreed schema:
-one row per host-neighbour pair with d[X/Fe] and its error for 18 elements (from
-`epsilon_v0.csv`), dTeff, dlogg and d[Fe/H]. Combining the neighbours per host and all statistics
-are left to the analysis code ([`chemclock-analysis/tc_slopes.py`](../chemclock-analysis/) takes a pair table
-with `--pairs`).
+## build_table.py
 
-The run also reports how many hosts get the same three neighbours as the stored v6 table. With the
-defaults this is 11 of 131, with about half of all neighbours shared.
-
-## original/
-
-`rank_mean_original.ipynb` is the notebook the v6 neighbours were first built with. It is kept
-for reference only: it expects the CSV files in its own folder and asks for one host at a time,
-and running its method over all hosts does not reproduce the v6 table either. It ranks with
-`argsort` (ties broken by sort order), includes the host in its own ranking, uses the HARPS-GTO
-parameter columns and the full non-host table as the pool, and keys hosts on `hostname_1`.
+Builds the table the analysis reads: one row per host, one block of Δ[X/Fe] and errors per
+neighbour (prefixes `1_` … `10_`), from `epsilon_v0.csv`. With the default input it checks the
+result cell by cell against the committed `final_test_v2.csv`. `--neighbours FILE --out FILE`
+builds the table for another neighbour table.
