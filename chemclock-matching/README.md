@@ -44,7 +44,8 @@ and the host list. Run `python match_neighbours.py -h` for the list.
 Each run writes `neighbours_<tag>.csv` and `pairs_<tag>.csv`. The pair table is the agreed schema:
 one row per host-neighbour pair with d[X/Fe] and its error for 18 elements (from
 `epsilon_v0.csv`), dTeff, dlogg and d[Fe/H]. Combining the neighbours per host and all statistics
-are left to the analysis code.
+are left to the analysis code ([`chemclock-analysis/tc_slopes.py`](../chemclock-analysis/) takes a pair table
+with `--pairs`).
 
 The run also reports how many hosts get the same three neighbours as the stored v6 table. With the
 defaults this is 11 of 131, with about half of all neighbours shared.

@@ -4,8 +4,10 @@
   1. crossmatch the HARPS-GTO stars with the NASA Exoplanet Archive snapshot
   2. rebuild the paper v6 input table (final_test_v0.csv) and check it
   3. neighbour matching with the default settings and two variants
+  4. condensation-temperature slopes: the paper's numbers, then the corrected analysis
 
-Stops at the first step that fails. All outputs go to chemclock-matching/output/.
+Stops at the first step that fails. Outputs go to chemclock-matching/output/ and
+chemclock-analysis/output/.
 
 Usage:  python reproduce.py
 """
@@ -16,15 +18,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'chemclock-data'
-CODE = ROOT / 'chemclock-matching'
+MATCH = ROOT / 'chemclock-matching'
+ANALYSIS = ROOT / 'chemclock-analysis'
 
 STEPS = [
-    ('1. host crossmatch', ['crossmatch_hosts.py']),
-    ('2. rebuild paper input table', ['rebuild_paper_table.py']),
-    ('3a. matching: defaults', ['match_neighbours.py']),
-    ('3b. matching: without replacement', ['match_neighbours.py', '--no-replacement']),
+    ('1. host crossmatch', [MATCH / 'crossmatch_hosts.py']),
+    ('2. rebuild paper input table', [MATCH / 'rebuild_paper_table.py']),
+    ('3a. matching: defaults', [MATCH / 'match_neighbours.py']),
+    ('3b. matching: without replacement', [MATCH / 'match_neighbours.py', '--no-replacement']),
     ('3c. matching: HARPS parameters, archive hosts removed',
-     ['match_neighbours.py', '--params', 'harps', '--drop-archive-hosts', '--tag', 'harps_clean']),
+     [MATCH / 'match_neighbours.py', '--params', 'harps', '--drop-archive-hosts', '--tag', 'harps_clean']),
+    ('4a. Tc slopes: paper numbers (original notebook)', [ANALYSIS / 'tc_slopes.py', '--paper']),
+    ('4b. Tc slopes: corrected analysis', [ANALYSIS / 'tc_slopes.py']),
 ]
 
 
@@ -45,8 +50,8 @@ if bad:
 
 for title, args in STEPS:
     banner(title)
-    if subprocess.run([sys.executable, str(CODE / args[0])] + args[1:]).returncode:
+    if subprocess.run([sys.executable] + [str(x) for x in args]).returncode:
         sys.exit(f'step "{title}" failed')
 
 banner('done')
-print(f'outputs in {CODE / "output"}')
+print(f'outputs in {MATCH / "output"} and {ANALYSIS / "output"}')
