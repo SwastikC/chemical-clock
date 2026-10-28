@@ -12,7 +12,7 @@ in the HARPS-GTO sample with those of their closest "twin" stars without planets
 
 ---
 
-## Quick start (about 7 minutes)
+## Quick start (about 10 minutes)
 
 You need Python 3.9 or newer and `git`.
 
