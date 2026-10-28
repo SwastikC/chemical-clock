@@ -9,7 +9,8 @@ D = ROOT / 'chemclock-data' / 'data'
 FILES = {
     'neighbours': D / 'reference/neighbour_table_v6.csv',    # (Neighbour Dataset.csv)
     'final_test': D / 'reference/final_test_v0.csv',         # (final_test.csv)
-    'properties': D / 'harps_gto/general_properties.csv',    # (Properties_f.csv)
+    'epsilon':    D / 'harps_gto/epsilon_v0.csv',            # (epsilon.csv)
+    'properties': D / 'harps_gto/general_properties.csv',    # (Properties_f.csv, General Properties.csv)
     'swp':        D / 'harps_gto/starswithplanet.csv',
     'swop':       D / 'harps_gto/starswithoutplanet.csv',
     'tc':         D / 'condensation_temps.csv',              # (Condensation Temps.csv)
