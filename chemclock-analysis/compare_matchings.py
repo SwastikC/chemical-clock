@@ -87,10 +87,13 @@ for tag, (desc, opts) in MATCHINGS.items():
             sys.exit('the regenerated v1 neighbours differ from the committed table')
     run([PIPE / 'run_pipeline.py', '--neighbours', nb, '--tag', tag])
     if tag == 'v1' and V1.exists():
-        table, stored = PIPE / 'output' / tag / 'final_test.csv', V1.with_name('final_test_v1.csv')
-        diff = (pd.read_csv(table).drop(columns=['id', 'First', 'Second', 'Third'])
-                - pd.read_csv(stored).drop(columns=['id', 'First', 'Second', 'Third'])).abs().to_numpy().max()
-        print(f'  rebuilt v1 table vs {stored.name}: largest difference {diff:.1e}')
+        new, old = (pd.read_csv(f) for f in (PIPE / 'output' / tag / 'final_test.csv', V1.with_name('final_test_v1.csv')))
+        names = ['id', 'First', 'Second', 'Third']
+        x, y = (t.drop(columns=names).to_numpy(float) for t in (new, old))
+        same = (new.shape == old.shape and new[names].equals(old[names])
+                and (np.isnan(x) == np.isnan(y)).all())          # missing values in the same cells
+        diff = np.nanmax(np.abs(x - y)) if same else np.inf
+        print(f'  rebuilt v1 table vs final_test_v1.csv: same stars and missing values {same}, largest difference {diff:.1e}')
         if diff > 1e-9:
             sys.exit('the rebuilt v1 table differs from the committed final_test_v1.csv')
     rows.append(dict(matching=tag, description=desc, **summary(PIPE / 'output' / tag)))
