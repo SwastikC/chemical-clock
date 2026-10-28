@@ -37,8 +37,9 @@ import pandas as pd
 from scipy.stats import rankdata
 from scipy.optimize import linear_sum_assignment
 
+HERE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser()
-ap.add_argument('--data', default='../chemclock-data/data')
+ap.add_argument('--data', default=str(HERE.parent / 'chemclock-data' / 'data'))
 ap.add_argument('--params', choices=['general', 'harps'], default='general')
 ap.add_argument('--hosts', choices=['v6', 'final'], default='final')
 ap.add_argument('--window', type=float, default=160.0, help='Teff window, K')
@@ -47,10 +48,10 @@ ap.add_argument('--no-replacement', action='store_true')
 ap.add_argument('--ties', choices=['ordinal', 'average'], default='ordinal')
 ap.add_argument('--include-host', action='store_true')
 ap.add_argument('--drop-archive-hosts', action='store_true')
-ap.add_argument('--out', default='output')
+ap.add_argument('--out', default=str(HERE / 'output'))
 ap.add_argument('--tag', default=None)
 a = ap.parse_args()
-D = Path(a.data); OUT = Path(a.out); OUT.mkdir(exist_ok=True)
+D = Path(a.data); OUT = Path(a.out); OUT.mkdir(parents=True, exist_ok=True)
 tag = a.tag or f'{a.params}_{"nr" if a.no_replacement else "wr"}_w{int(a.window)}_k{a.k}'
 norm = lambda s: str(s).replace(' ', '').strip()
 ELS = ['Zn', 'Cu', 'Na', 'Mn', 'V', 'Cr', 'Co', 'Ni', 'Mg', 'Si', 'Ca', 'Ti', 'Sc', 'Al', 'Sr', 'Y', 'Ba', 'Ce']
@@ -60,6 +61,8 @@ eps = pd.read_csv(D / 'harps_gto/epsilon_v0.csv'); eps['n'] = eps['Star'].map(no
 EPS = eps.drop_duplicates('n').set_index('n')
 pool_names = set(eps.loc[eps['SwP?'] == 'No', 'n'])
 if a.drop_archive_hosts:
+    if not (OUT / 'host_crossmatch.csv').exists():
+        raise SystemExit(f'--drop-archive-hosts needs {OUT / "host_crossmatch.csv"}: run crossmatch_hosts.py first')
     xm = pd.read_csv(OUT / 'host_crossmatch.csv')
     archive_hosts = set(xm.loc[xm['archive_host'].notna(), 'star'])
     dropped = sorted(pool_names & archive_hosts)

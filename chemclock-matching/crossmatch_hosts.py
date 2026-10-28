@@ -14,20 +14,22 @@ and a class: small (< --cut Mj), giant (>= --cut), or none (no mass).
 Output: output/host_crossmatch.csv, plus a summary comparing with the HARPS
 host flag (epsilon SwP?) and the host lists used in the paper.
 
-Usage:  python crossmatch_hosts.py [--data ../chemclock-data/data] [--radius 60] [--cut 0.3]
+Usage:  python crossmatch_hosts.py [--radius 60] [--cut 0.3] [--data DIR] [--out DIR]
+        (by default reads ../chemclock-data/data and writes output/ next to this script)
 """
 import argparse
 from pathlib import Path
 import numpy as np
 import pandas as pd
 
+HERE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser()
-ap.add_argument('--data', default='../chemclock-data/data')
+ap.add_argument('--data', default=str(HERE.parent / 'chemclock-data' / 'data'))
 ap.add_argument('--radius', type=float, default=60.0, help='positional match radius, arcsec')
 ap.add_argument('--cut', type=float, default=0.3, help='small/giant split in Mp sin i, Jupiter masses')
-ap.add_argument('--out', default='output')
+ap.add_argument('--out', default=str(HERE / 'output'))
 a = ap.parse_args()
-D = Path(a.data); OUT = Path(a.out); OUT.mkdir(exist_ok=True)
+D = Path(a.data); OUT = Path(a.out); OUT.mkdir(parents=True, exist_ok=True)
 norm = lambda s: str(s).replace(' ', '').strip()
 
 # ---- archive hosts: one row per host

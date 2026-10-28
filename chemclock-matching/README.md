@@ -1,17 +1,20 @@
 # chemclock-matching
 
-Host crossmatch and neighbour matching for the chemical-clock project. Expects `chemclock-data`
-cloned next to this folder (or pass `--data`).
+Host crossmatch and neighbour matching for the chemical-clock project. The step-by-step guide
+with expected numbers is in the [top-level README](../README.md); `python ../reproduce.py` runs
+everything.
+
+The scripts read `../chemclock-data/data` and write to `output/` next to this file, whatever
+folder you run them from (pass `--data` or `--out` to change that). `output/` is not committed.
 
 ```
-pip install numpy scipy pandas
+pip install -r ../requirements.txt
 python crossmatch_hosts.py                  # archive hosts -> HARPS-GTO stars, classes at 0.3 Mj
+python rebuild_paper_table.py               # rebuild final_test_v0.csv and check it
 python match_neighbours.py                  # rank-mean, General Properties parameters, with replacement
 python match_neighbours.py --no-replacement
 python match_neighbours.py --params harps --drop-archive-hosts --tag harps_clean
 ```
-
-Outputs go to `output/` (not committed).
 
 ## crossmatch_hosts.py
 
@@ -20,6 +23,13 @@ trailing component letter allowed on the HARPS side), then by position within 60
 positions differ in epoch (J2000 against Gaia), which is why identifiers come first. Each matched
 star gets the largest Mp sin i among its planets and a small/giant class. The summary lists stars
 whose HARPS host flag disagrees with the archive.
+
+## rebuild_paper_table.py
+
+Rebuilds the paper v6 input table `final_test_v0.csv` from `neighbour_table_v6.csv` and
+`epsilon_v0.csv` (host minus neighbour, errors in quadrature), writes
+`output/final_test_rebuilt.csv` and compares it cell by cell with the stored table. It exits with
+an error if they differ. With tag v0 the largest difference is about 1e-16.
 
 ## match_neighbours.py
 
@@ -41,6 +51,8 @@ defaults this is 11 of 131, with about half of all neighbours shared.
 
 ## original/
 
-`rank_mean_original.ipynb` is the notebook the v6 neighbours were first built with. It ranks with
+`rank_mean_original.ipynb` is the notebook the v6 neighbours were first built with. It is kept
+for reference only: it expects the CSV files in its own folder and asks for one host at a time,
+and running its method over all hosts does not reproduce the v6 table either. It ranks with
 `argsort` (ties broken by sort order), includes the host in its own ranking, uses the HARPS-GTO
 parameter columns and the full non-host table as the pool, and keys hosts on `hostname_1`.
