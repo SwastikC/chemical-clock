@@ -2,7 +2,11 @@
 
 The inputs are the tagged files in chemclock-data/data. The names in brackets are
 the ones the scripts used before they were moved into this repository.
+
+run_pipeline.py --neighbours FILE replaces the neighbour table, the paper table
+built from it and the output folder through the CHEMCLOCK_* environment variables.
 """
+import os
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 D = ROOT / 'chemclock-data' / 'data'
@@ -17,4 +21,8 @@ FILES = {
     'archive':    D / 'nasa/nasa_archive_snapshot.csv',      # (Comp_data.csv)
 }
 OUT = str(Path(__file__).resolve().parent / 'output')
+for key, var in (('neighbours', 'CHEMCLOCK_NEIGHBOURS'), ('final_test', 'CHEMCLOCK_FINAL_TEST')):
+    if os.environ.get(var):
+        FILES[key] = Path(os.environ[var])
+OUT = os.environ.get('CHEMCLOCK_OUT') or OUT
 (Path(OUT) / 'figures').mkdir(parents=True, exist_ok=True)

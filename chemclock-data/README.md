@@ -4,7 +4,7 @@ Input data for the chemical-clock project. Read-only for students: new versions 
 matching ensemble) arrive by pull request and are tagged. Check your copy against
 `SHA256SUMS` (`sha256sum -c SHA256SUMS`) and quote the tag you used in every result.
 
-Current tag: **v0**.
+Current tag: **v0**. Proposed next: **v1** (adds a reproducible neighbour table; see below).
 
 ## Files
 
@@ -17,11 +17,32 @@ Current tag: **v0**.
 | `data/nasa/nasa_archive_snapshot.csv` | 5595 | NASA Exoplanet Archive composite table (`pscomppars`), one row per planet |
 | `data/reference/neighbour_table_v6.csv` | 133 | The three neighbours per host used in paper v6 |
 | `data/reference/final_test_v0.csv` | 131 | Paper v6 input table: host-minus-neighbour d[X/Fe] and errors for each of the three neighbours (`1_`, `2_`, `3_` prefixes) |
+| `data/reference/neighbour_table_v1.csv` | 131 | Three neighbours per host from the documented rank-mean matching (v1, see below). Regenerated exactly by the code |
+| `data/reference/final_test_v1.csv` | 131 | Same layout as `final_test_v0.csv`, for the v1 neighbours |
 | `data/condensation_temps.csv` | 25 | 50% condensation temperatures |
 | `data/legacy/` | | The two files before the Cr correction. Do not use; kept for traceability |
 
 Every pair value in `final_test_v0.csv` equals epsilon_v0[host] minus epsilon_v0[neighbour], and
 every error is the two star errors added in quadrature.
+
+## v1: a reproducible neighbour table
+
+`neighbour_table_v6.csv` cannot be regenerated (issue 6), and its neighbours are looser matches
+than the method described in the paper gives (median |dTeff| 43-45 K against 15-17 K). v1
+replaces it with a table made by code:
+
+```
+python chemclock-matching/crossmatch_hosts.py
+python chemclock-matching/match_neighbours.py --params harps --drop-archive-hosts --tag v1
+python chemclock-matching/rebuild_paper_table.py --neighbours chemclock-matching/output/neighbours_v1.csv --table-out final_test_v1.csv
+```
+
+Choices, fixed before any result was looked at: the rank-mean method (Teff window 160 K, 3
+neighbours), the HARPS-GTO parameter columns as in the original notebook, archive planet hosts
+removed from the control pool (issue 2), neighbours may serve more than one host. The 131 hosts of
+`final_test_v0.csv`. Median |dTeff| 16 K; 11 hosts have the same three neighbours as v6.
+`chemclock-analysis/compare_matchings.py` regenerates both files and stops if they differ from
+the committed ones.
 
 ## Column notes
 
@@ -52,6 +73,7 @@ every error is the two star errors added in quadrature.
    missing from the second; the reason is not documented.
 5. The download date of the archive snapshot is unknown (before July 2025).
 6. The procedure that produced `neighbour_table_v6.csv` is not documented well enough to regenerate it.
+   v1 (above) is a reproducible replacement; the results with it are in `chemclock-analysis/README.md`.
 
 ## Sources
 

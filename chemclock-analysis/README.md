@@ -74,6 +74,39 @@ Tested in [`checks/neighbour_reuse/`](checks/neighbour_reuse/) (`python checks/n
   the main open question for the paper: the headline significance depends on a neighbour table
   whose construction is not known.
 
+### Results with a reproducible neighbour table (v1)
+
+`python compare_matchings.py` builds the neighbour table for each matching choice with
+`chemclock-matching/match_neighbours.py`, runs the whole pipeline on each
+(`pipeline/run_pipeline.py --neighbours`), and writes `output/matching_comparison.csv`. **v1**
+(HARPS-GTO parameters, archive planet hosts removed from the controls, with replacement) is
+committed in `chemclock-data/data/reference/`; see the
+[data README](../chemclock-data/README.md#v1-a-reproducible-neighbour-table) for how and why.
+
+| | v6 (paper) | **v1** | HARPS | HARPS, no repl. | General Prop. | General Prop., no repl. | General Prop., hosts removed |
+|---|---|---|---|---|---|---|---|
+| s-process diff (dex) | −0.039 | **−0.021** | −0.021 | −0.019 | −0.026 | −0.027 | −0.027 |
+| s-process σ | −4.40 | **−2.31** | −2.27 | −1.99 | −2.97 | −3.04 | −3.10 |
+| … after Δ[Fe/H] | −4.54 | **−2.43** | −2.40 | −2.19 | −3.23 | −3.39 | −3.49 |
+| … after ΔTeff, Δlog g, Δ[Fe/H] | −4.72 | **−2.49** | −2.50 | −2.37 | −3.22 | −3.38 | −3.48 |
+| [Y/Mg] Δage (Gyr) | +0.84 | **+0.30** | +0.25 | +0.11 | +0.49 | +0.50 | +0.55 |
+| [Y/Mg] σ | +2.19 | **+0.76** | +0.63 | +0.26 | +1.31 | +1.24 | +1.48 |
+| Tc slope σ, all elements | −2.21 | **−0.73** | −0.68 | −0.40 | −1.37 | −1.36 | −1.41 |
+| Tc slope σ, without s-process | −0.32 | **+0.39** | +0.37 | +0.56 | +0.06 | +0.12 | +0.11 |
+| isochrone vs [Y/Mg] age, r | +0.27 | **+0.39** | +0.42 | +0.30 | +0.42 | +0.36 | +0.45 |
+| combined age σ | +3.38 | **+3.02** | +2.98 | +1.89 | +2.89 | +2.01 | +3.47 |
+
+With every reproducible matching, small-planet hosts still show lower s-process abundances than
+giant-planet hosts, but the difference is about half as large as with v6 (−0.02 to −0.03 dex
+against −0.04) and its significance falls from 4.4σ to 2.0–3.1σ. The [Y/Mg] age difference
+falls below 1.5σ. The combined isochrone + [Y/Mg] age difference stays between 1.9σ and 3.5σ.
+It uses only the 96–99 hosts that have isochrone ages, and on that subset both parts contribute
+about equally (v1: isochrone +2.65σ, [Y/Mg] +2.46σ). The [Y/Mg] difference is much larger there
+than over all 121 classified hosts (+0.76σ with v1), so which hosts have ages matters.
+
+The figure texts in `figures_v3.py` (for example "Five chemical clocks all agree", "No correlation
+with Δ[Fe/H]") were written for the v6 results and are not updated for other matchings.
+
 ### Other open questions (not changed)
 
 - **Planet classes use `hd_name` only** (data README, issue 3): 121 hosts classified, against 124

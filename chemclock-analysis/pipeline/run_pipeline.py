@@ -6,10 +6,18 @@
   4. ext1_iso_age.py           isochrone ages against [Y/Mg] ages
   5. ext1_fig.py               the isochrone figure
 
-Each script prints its results; outputs go to output/ and figures to output/figures/.
+Each script prints its results. With the stored v6 neighbours (the paper), outputs go
+to output/ and figures to output/figures/.
 
-Usage:  python run_pipeline.py
+--neighbours FILE redoes everything with another neighbour table (columns SwP, First,
+Second, Third, e.g. chemclock-data/data/reference/neighbour_table_v1.csv or a
+neighbours_<tag>.csv from match_neighbours.py). The host-minus-neighbour table is
+rebuilt from epsilon_v0.csv first, and all outputs go to output/<tag>/.
+
+Usage:  python run_pipeline.py                                  # the paper (v6 neighbours)
+        python run_pipeline.py --neighbours FILE [--tag NAME]   # any other neighbour table
 """
+import argparse
 import os
 import subprocess
 import sys
@@ -17,10 +25,25 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SCRIPTS = ['build_stellar_offsets.py', 'robustness.py', 'figures_v3.py', 'ext1_iso_age.py', 'ext1_fig.py']
+ap = argparse.ArgumentParser()
+ap.add_argument('--neighbours', default=None, help='neighbour table to use instead of the stored v6 table')
+ap.add_argument('--tag', default=None, help='name of the output folder (default: the file name)')
+a = ap.parse_args()
+
 env = dict(os.environ, MPLBACKEND='Agg')   # write figures without opening windows
+out = HERE / 'output'
+if a.neighbours:
+    nb = Path(a.neighbours).resolve()
+    out = out / (a.tag or nb.stem.removeprefix('neighbours_'))
+    table = out / 'final_test.csv'
+    build = [sys.executable, str(HERE.parents[1] / 'chemclock-matching' / 'rebuild_paper_table.py'),
+             '--neighbours', str(nb), '--table-out', str(table)]
+    if subprocess.run(build).returncode:
+        sys.exit('could not build the table for ' + str(nb))
+    env.update(CHEMCLOCK_NEIGHBOURS=str(nb), CHEMCLOCK_FINAL_TEST=str(table), CHEMCLOCK_OUT=str(out))
 
 for s in SCRIPTS:
     print(f'\n--- {s} ' + '-' * max(0, 70 - len(s)), flush=True)
     if subprocess.run([sys.executable, str(HERE / s)], env=env).returncode:
         sys.exit(f'{s} failed')
-print(f'\nfigures in {HERE / "output" / "figures"}')
+print(f'\nfigures in {out / "figures"}')
